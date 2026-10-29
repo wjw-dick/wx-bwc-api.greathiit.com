@@ -1,0 +1,12 @@
+.result {
+  margin-top: 26rpx;
+  border-top: 1rpx solid #eef3fa;
+  padding-top: 12rpx;
+  text-align: left;
+}
+.result-row {
+  display: flex; justify-content: space-between; gap: 24rpx;
+  padding: 14rpx 0; border-bottom: 1rpx dashed #eef3fa; font-size: 26rpx;
+}
+.result-row text:first-child { color: #7b8ca6; }
+.result-row text:last-child { color: #16233a; font-weight: 600; text-align: right; }

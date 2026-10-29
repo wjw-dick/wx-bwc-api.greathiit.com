@@ -1,0 +1,2 @@
+.notice-row:last-child { border-bottom: none; }
+.warning-item:last-child { border-bottom: none !important; }

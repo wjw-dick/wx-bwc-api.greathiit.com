@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bwc-config
+  namespace: bwc
+  labels:
+    app.kubernetes.io/name: bwc
+data:
+  SERVER_PORT: "8080"
+  PUBLIC_BASE_URL: "https://wx-bwc-api.greathiit.com"
+  TZ: "Asia/Shanghai"
+  DB_HOST: "bwc-mysql"
+  DB_PORT: "3306"
+  DB_NAME: "bwc"
+  DB_USERNAME: "root"
+  REDIS_HOST: "bwc-redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  RABBITMQ_HOST: "bwc-rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_VHOST: "/"
+  BWC_MQ_LISTENER: "false"
+  UPLOAD_PATH: "/opt/bwc/uploads"
+  BWC_PDF_FONT: "/usr/share/fonts/chinese/stsong.ttf"
+  JWT_EXPIRE_HOURS: "24"

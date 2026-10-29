@@ -1,0 +1,9 @@
+.warning-card { border-left: 6rpx solid #f59e0b; background: #fffdf8; }
+.warning-item { padding: 14rpx 0; border-bottom: 1rpx solid #fef3e2; }
+.warning-item:last-child { border-bottom: none; }
+.warning-title { font-weight: 600; color: #8a4b00; }
+.notice-card {
+  background: #fff; border-radius: 20rpx; padding: 24rpx; border: 1rpx solid #e6edf6;
+  margin-bottom: 14rpx;
+}
+.notice-title { font-size: 30rpx; font-weight: 600; color: #0f2a52; flex: 1; }

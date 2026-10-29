@@ -1,0 +1,9 @@
+.detail-row {
+  display: flex; justify-content: space-between; gap: 24rpx;
+  padding: 16rpx 0; border-bottom: 1rpx dashed #eef3fa; font-size: 26rpx;
+}
+.detail-row text:first-child { color: #7b8ca6; flex-shrink: 0; }
+.detail-row text:last-child { color: #16233a; text-align: right; }
+.detail-block { padding-top: 18rpx; font-size: 26rpx; }
+.tip-card { background: #f8fbff; }
+.photo-row image { width: 200rpx; height: 200rpx; }

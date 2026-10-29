@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bwc-uploads
+  namespace: bwc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bwc-api
+  namespace: bwc
+  labels:
+    app: bwc-api
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: bwc-api
+  template:
+    metadata:
+      labels:
+        app: bwc-api
+    spec:
+      containers:
+        - name: api
+          image: bwc-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: bwc-config
+            - secretRef:
+                name: bwc-secret
+          volumeMounts:
+            - name: uploads
+              mountPath: /opt/bwc/uploads
+            - name: fonts
+              mountPath: /usr/share/fonts/chinese
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /api/public/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/public/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: {cpu: "500m", memory: "768Mi"}
+            limits: {cpu: "2", memory: "2Gi"}
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: bwc-uploads
+        - name: fonts
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bwc-api
+  namespace: bwc
+spec:
+  selector:
+    app: bwc-api
+  ports:
+    - port: 8080
+      targetPort: 8080

@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/visitor/list",
+    "pages/lost/index",
+    "pages/message/index",
+    "pages/profile/index",
+    "pages/login/index",
+    "pages/visitor/create",
+    "pages/vehicle/create",
+    "pages/lost/detail",
+    "pages/lost/report",
+    "pages/report/index",
+    "pages/education/index",
+    "pages/education/exam",
+    "pages/approval/list",
+    "pages/news/index",
+    "pages/news/detail",
+    "pages/profile/password"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0f2a52",
+    "navigationBarTitleText": "校园保卫",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f6f9fe",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#7b8ca6",
+    "selectedColor": "#2563eb",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页" },
+      { "pagePath": "pages/visitor/list", "text": "访客" },
+      { "pagePath": "pages/lost/index", "text": "失物" },
+      { "pagePath": "pages/message/index", "text": "消息" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于巡逻打卡与隐患上报定位"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation", "chooseLocation"],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

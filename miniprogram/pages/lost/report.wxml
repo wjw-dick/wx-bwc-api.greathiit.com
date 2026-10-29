@@ -1,0 +1,57 @@
+<view class="container">
+  <view wx:if="{{success}}">
+    <view class="card" style="text-align:center;padding:50rpx 30rpx;">
+      <view style="font-size:70rpx;">🎁</view>
+      <view class="title" style="margin-top:12rpx;">拾获登记成功</view>
+      <view class="muted" style="margin-top:8rpx;">请将物品交至保卫处失物招领点统一保管</view>
+      <view class="result">
+        <view class="result-row"><text>登记编号</text><text>{{result.itemNo || '-'}}</text></view>
+        <view class="result-row"><text>物品名称</text><text>{{form.name}}</text></view>
+        <view class="result-row"><text>拾获地点</text><text>{{form.location}}</text></view>
+      </view>
+      <view class="muted" style="font-size:22rpx;margin-top:16rpx;">{{result.message}}</view>
+    </view>
+    <button class="btn block" bindtap="goWall">查看失物墙</button>
+    <button class="btn block ghost" style="margin-top:16rpx;" bindtap="again">继续登记</button>
+  </view>
+
+  <view wx:else>
+    <view class="card">
+      <view class="field">
+        <view class="label">物品名称<text class="required">*</text></view>
+        <input value="{{form.name}}" data-field="name" bindinput="onInput" placeholder="如：校园卡、蓝牙耳机" maxlength="60" />
+      </view>
+      <view class="field">
+        <view class="label">物品分类</view>
+        <picker mode="selector" range="{{categories}}" range-key="label" value="{{form.categoryIndex}}" bindchange="onCategory">
+          <view class="picker-value">{{categories[form.categoryIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">拾获地点<text class="required">*</text></view>
+        <input value="{{form.location}}" data-field="location" bindinput="onInput" placeholder="如：图书馆一楼大厅" maxlength="80" />
+      </view>
+      <view class="field">
+        <view class="label">拾获日期</view>
+        <picker mode="date" value="{{form.foundDate}}" bindchange="onDate">
+          <view class="picker-value">{{form.foundDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">物品描述</view>
+        <textarea value="{{form.description}}" data-field="description" bindinput="onInput" maxlength="300" placeholder="颜色、品牌、外观特征等" />
+      </view>
+      <view class="field">
+        <view class="label">拾获人</view>
+        <input value="{{form.finder}}" data-field="finder" bindinput="onInput" maxlength="30" placeholder="选填，可匿名" />
+      </view>
+      <view class="field">
+        <view class="label">保管地点</view>
+        <input value="{{form.storageLocation}}" data-field="storageLocation" bindinput="onInput" maxlength="80" placeholder="选填，如保卫处值班室" />
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" loading="{{submitting}}" bindtap="submit">提交登记</button>
+      <view class="hint" style="text-align:center;margin-top:14rpx;">公开登记无需登录，登记后由保卫处审核发布</view>
+    </view>
+  </view>
+</view>

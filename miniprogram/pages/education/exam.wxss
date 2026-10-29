@@ -1,0 +1,9 @@
+.score { font-size: 96rpx; font-weight: 800; color: #2563eb; line-height: 1.1; margin-top: 10rpx; }
+.question .q-title { font-size: 30rpx; font-weight: 600; color: #0f2a52; margin-bottom: 12rpx; }
+.options { display: flex; flex-direction: column; gap: 12rpx; margin-bottom: 12rpx; }
+.option {
+  display: flex; align-items: center; gap: 12rpx;
+  background: #f8fbff; border: 1rpx solid #e6edf6; border-radius: 14rpx;
+  padding: 16rpx 20rpx; font-size: 26rpx;
+}
+.option radio { transform: scale(0.85); }

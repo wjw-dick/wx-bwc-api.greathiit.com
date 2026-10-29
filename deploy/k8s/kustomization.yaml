@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: bwc
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.example.yaml
+  - dependencies.yaml
+  - api.yaml
+  - web.yaml
+  - ingress.yaml
+images:
+  - name: bwc-api
+    newTag: 1.0.0
+  - name: bwc-web
+    newTag: 1.0.0

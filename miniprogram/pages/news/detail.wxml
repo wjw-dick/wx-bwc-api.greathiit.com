@@ -1,0 +1,15 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{!notice}}" class="empty">资讯不存在或已下架</view>
+  <view wx:else class="card">
+    <view class="title">{{notice.title}}</view>
+    <view class="meta-line" style="margin-bottom:16rpx;">
+      <view>{{notice.publishTimeText}}</view>
+      <view>{{notice.publisher || '保卫处'}}</view>
+      <view>{{notice.category || '通知公告'}}</view>
+      <view>阅读 {{notice.views || 0}}</view>
+    </view>
+    <view class="divider"></view>
+    <rich-text nodes="{{notice.content}}"></rich-text>
+  </view>
+</view>

@@ -1,0 +1,24 @@
+<view class="container">
+  <view wx:if="{{warnings.length}}" class="card warning-card">
+    <view class="between">
+      <view class="section-title" style="margin:0;color:#8a4b00;">安全预警</view>
+      <view class="tag warn">{{warnings.length}} 条</view>
+    </view>
+    <view wx:for="{{warnings}}" wx:key="id" class="warning-item">
+      <view class="warning-title">{{item.title}}</view>
+      <view class="muted">{{item.content}}</view>
+      <view class="muted" style="font-size:22rpx;margin-top:4rpx;">{{item.publishTimeText}} · {{item.warningLevel || '提示'}}</view>
+    </view>
+  </view>
+
+  <view class="section-title" style="margin-top:28rpx;">通知公告</view>
+  <view wx:if="{{loading && !notices.length}}" class="loading">加载中…</view>
+  <view wx:elif="{{!notices.length}}" class="empty">暂无通知公告</view>
+  <view wx:for="{{notices}}" wx:key="id" class="notice-card" data-id="{{item.id}}" bindtap="openDetail">
+    <view class="between">
+      <view class="notice-title">{{item.title}}</view>
+      <view class="tag">{{item.category || '通知'}}</view>
+    </view>
+    <view class="muted" style="margin-top:6rpx;">{{item.publishTimeText}} · {{item.publisher || '保卫处'}}</view>
+  </view>
+</view>

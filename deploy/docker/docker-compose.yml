@@ -1,0 +1,135 @@
+# ============================================================================
+# 校园保卫 SaaS · Docker Compose 配置定义（不包含构建/运行命令）
+# 使用前：cp deploy/.env.example deploy/.env 并按需修改
+# ============================================================================
+name: bwc
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bwc-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
+      MYSQL_DATABASE: ${DB_NAME:-bwc}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_connections=300
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-change-me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [bwc-net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: bwc-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-change-me}"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [bwc-net]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: bwc-rabbitmq
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-bwc}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    networks: [bwc-net]
+
+  minio:
+    image: minio/minio:RELEASE.2024-06-13T22-53-53Z
+    container_name: bwc-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-bwcadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me-please}
+    volumes:
+      - minio-data:/data
+    networks: [bwc-net]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: bwc-api:1.0.0
+    container_name: bwc-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      TZ: Asia/Shanghai
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-bwc}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      SERVER_PORT: 8080
+      UPLOAD_PATH: /opt/bwc/uploads
+      PUBLIC_BASE_URL: https://wx-bwc-api.greathiit.com
+      BWC_PDF_FONT: /usr/share/fonts/chinese/stsong.ttf
+    volumes:
+      - uploads:/opt/bwc/uploads
+      - ./fonts:/usr/share/fonts/chinese:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [bwc-net]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+    image: bwc-web:1.0.0
+    container_name: bwc-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8088}:80"
+    volumes:
+      - uploads:/usr/share/nginx/uploads:ro
+    depends_on:
+      - api
+    networks: [bwc-net]
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:
+  minio-data:
+  uploads:
+
+networks:
+  bwc-net:
+    driver: bridge

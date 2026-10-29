@@ -1,0 +1,41 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{!exam}}" class="empty">{{error || '考试不存在或未发布'}}</view>
+
+  <block wx:elif="{{result}}">
+    <view class="card" style="text-align:center;padding:50rpx 30rpx;">
+      <view style="font-size:70rpx;">{{result.passFlag === 1 ? '🎉' : '📝'}}</view>
+      <view class="title" style="margin-top:12rpx;">{{result.passFlag === 1 ? '恭喜通过' : '本次未通过'}}</view>
+      <view class="score">{{result.score}}</view>
+      <view class="muted">分（及格线 {{exam.passScore}} 分）</view>
+      <view class="muted" style="margin-top:14rpx;">提交时间：{{result.submitTime}}</view>
+    </view>
+    <button class="btn block" bindtap="goBack">返回安全教育</button>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="title">{{exam.title}}</view>
+      <view class="meta-line">
+        <view>满分 {{exam.totalScore}}</view>
+        <view>及格 {{exam.passScore}}</view>
+        <view>{{exam.timeText}}</view>
+      </view>
+    </view>
+
+    <view wx:for="{{questions}}" wx:key="id" class="card question">
+      <view class="q-title">{{index + 1}}. {{item.q}}</view>
+      <radio-group class="options" data-index="{{index}}" bindchange="choose">
+        <label wx:for="{{item.options}}" wx:for-item="opt" wx:for-index="optIndex" wx:key="*this" class="option">
+          <radio value="{{opt}}" checked="{{item.selected === opt}}" color="#2563eb" />
+          <text>{{opt}}</text>
+        </label>
+      </radio-group>
+      <view class="muted" style="font-size:22rpx;">本题 {{item.score}} 分</view>
+    </view>
+
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+    <button class="btn block" loading="{{submitting}}" bindtap="submit">提交试卷</button>
+    <view class="hint" style="text-align:center;margin-top:14rpx;">提交后不可修改，请确认作答</view>
+  </block>
+</view>

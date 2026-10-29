@@ -1,0 +1,35 @@
+[Unit]
+Description=Campus Security SaaS API (bwc-api)
+Documentation=https://wx-bwc-api.greathiit.com/docs
+After=network-online.target mysql.service redis-server.service rabbitmq-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bwc
+Group=bwc
+WorkingDirectory=/opt/bwc
+EnvironmentFile=/etc/bwc/bwc.env
+ExecStart=/usr/bin/java -Xms512m -Xmx1536m -XX:+UseG1GC -Dfile.encoding=UTF-8 -jar /opt/bwc/bwc-api.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65535
+TimeoutStopSec=30
+
+# 基础安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/bwc/uploads /opt/bwc/logs
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bwc-api
+
+[Install]
+WantedBy=multi-user.target

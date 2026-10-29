@@ -1,0 +1,78 @@
+<view class="profile-hero">
+  <view class="avatar">{{avatarText}}</view>
+  <view class="flex1">
+    <view class="name">{{user ? user.realName : '未登录'}}</view>
+    <view class="sub">{{user ? (user.dept || '校园保卫') + ' · ' + (user.roleCode || user.userType || '') : '登录后使用完整服务'}}</view>
+    <view class="sub" wx:if="{{tenant}}">{{tenant.name}}（{{tenant.code}}）</view>
+  </view>
+  <view wx:if="{{!loggedIn}}" class="btn small" style="background:#fff;color:#0f2a52;width:auto;" bindtap="goLogin">登录</view>
+</view>
+
+<view class="container">
+  <view wx:if="{{loggedIn}}" class="card">
+    <view class="info-row"><text>账号</text><text>{{user.username}}</text></view>
+    <view class="info-row"><text>手机号</text><text>{{user.phoneMask || '-'}}</text></view>
+    <view class="info-row"><text>身份证</text><text>{{user.idCardMask || '-'}}</text></view>
+    <view class="info-row"><text>所属部门</text><text>{{user.dept || '-'}}</text></view>
+    <view class="info-row"><text>角色</text><text>{{user.roleCode || user.userType || '-'}}</text></view>
+  </view>
+
+  <view class="card" style="padding:8rpx 24rpx;">
+    <view wx:for="{{links}}" wx:key="key" class="link-row" data-key="{{item.key}}" bindtap="openLink">
+      <view class="link-icon">{{item.icon}}</view>
+      <view class="flex1">{{item.label}}</view>
+      <view class="muted">›</view>
+    </view>
+  </view>
+
+  <view class="card" style="padding:8rpx 24rpx;">
+    <view class="link-row" bindtap="toggleLocale">
+      <view class="link-icon">语</view>
+      <view class="flex1">语言 / Language</view>
+      <view class="muted">{{locale === 'zh-CN' ? '简体中文' : 'English'}}</view>
+    </view>
+    <view class="link-row" bindtap="showAgreement">
+      <view class="link-icon">协</view>
+      <view class="flex1">用户协议与隐私政策</view>
+      <view class="muted">›</view>
+    </view>
+    <view class="link-row" bindtap="showAbout">
+      <view class="link-icon">关</view>
+      <view class="flex1">关于校园保卫</view>
+      <view class="muted">v1.0.0</view>
+    </view>
+  </view>
+
+  <button wx:if="{{loggedIn}}" class="btn block danger" style="margin-top:20rpx;" bindtap="logout">退出登录</button>
+  <button wx:else class="btn block" style="margin-top:20rpx;" bindtap="goLogin">立即登录</button>
+
+  <view class="muted" style="text-align:center;margin-top:26rpx;font-size:22rpx;">
+    合法域名 wx-bwc-api.greathiit.com
+  </view>
+</view>
+
+<view wx:if="{{agreementVisible}}" class="modal-mask" bindtap="closeModal">
+  <view class="modal" catchtap="noop">
+    <h2>用户协议与隐私政策</h2>
+    <view class="agreement">
+      <view>1. 本小程序由学校保卫处提供校园安全服务，账号由学校统一分配。</view>
+      <view>2. 身份证号等敏感信息采用加密存储，页面仅展示脱敏结果。</view>
+      <view>3. 访客预约、车辆预约信息仅用于门岗核验与安全管理，不向无关第三方提供。</view>
+      <view>4. 监控调取需经分级审批，调阅记录全程留痕并接受审计。</view>
+      <view>5. 您可联系学校保卫处查询、更正或删除个人信息。</view>
+    </view>
+    <button class="btn ghost" style="margin-top:24rpx;" bindtap="closeModal">我已阅读</button>
+  </view>
+</view>
+
+<view wx:if="{{aboutVisible}}" class="modal-mask" bindtap="closeModal">
+  <view class="modal" catchtap="noop">
+    <h2>关于校园保卫</h2>
+    <view class="muted">校园安全 SaaS 平台小程序端，覆盖访客、车辆、失物、报修、安全教育、审批与消息。</view>
+    <view class="divider"></view>
+    <view class="info-row"><text>版本</text><text>1.0.0</text></view>
+    <view class="info-row"><text>服务域名</text><text>wx-bwc-api.greathiit.com</text></view>
+    <view class="info-row"><text>技术支持</text><text>GreatHiit</text></view>
+    <button class="btn ghost" style="margin-top:24rpx;" bindtap="closeModal">关闭</button>
+  </view>
+</view>

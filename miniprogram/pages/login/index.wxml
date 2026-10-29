@@ -1,0 +1,36 @@
+<view class="login-page">
+  <view class="brand">
+    <view class="logo">安</view>
+    <view class="brand-text">
+      <view class="name">校园保卫</view>
+      <view class="en">Campus Security</view>
+    </view>
+    <view class="lang" bindtap="toggleLocale">{{locale === 'zh-CN' ? 'EN' : '中文'}}</view>
+  </view>
+
+  <view class="title">账号登录</view>
+  <view class="subtitle">使用学校统一分配的保卫系统账号登录</view>
+
+  <view class="card form">
+    <view class="field">
+      <view class="label">账号</view>
+      <input value="{{username}}" data-field="username" bindinput="onInput" placeholder="请输入用户名" />
+    </view>
+    <view class="field">
+      <view class="label">密码</view>
+      <input value="{{password}}" data-field="password" bindinput="onInput" password placeholder="请输入密码" />
+    </view>
+    <view class="field">
+      <view class="label">学校编码</view>
+      <input value="{{tenantCode}}" data-field="tenantCode" bindinput="onInput" placeholder="如 DEMO" />
+    </view>
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+    <button class="btn block" loading="{{loading}}" bindtap="wxLogin">微信授权登录 / 账号登录</button>
+    <view class="hint">首次登录将尝试绑定微信 UnionID；微信未配置时自动降级为账号密码登录。</view>
+  </view>
+
+  <view class="footer">
+    <view>合法域名 wx-bwc-api.greathiit.com</view>
+    <view>默认密码 Admin@123，登录后请及时修改</view>
+  </view>
+</view>

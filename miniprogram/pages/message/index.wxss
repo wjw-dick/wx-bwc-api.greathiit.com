@@ -1,0 +1,12 @@
+.message-card {
+  background: #fff; border-radius: 20rpx; padding: 24rpx; border: 1rpx solid #e6edf6;
+  margin-bottom: 14rpx;
+}
+.msg-title { font-size: 30rpx; font-weight: 600; color: #0f2a52; flex: 1; }
+.msg-content {
+  margin-top: 8rpx;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

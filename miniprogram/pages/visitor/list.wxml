@@ -1,0 +1,56 @@
+<view wx:if="{{!loggedIn}}" class="container">
+  <view class="card" style="text-align:center;padding:70rpx 30rpx;">
+    <view style="font-size:64rpx;">🔐</view>
+    <view class="title" style="margin-top:16rpx;">登录后查看访客预约</view>
+    <view class="subtitle">审批结果、通行码与来访记录均在登录后展示</view>
+    <button class="btn" style="margin-top:34rpx;" bindtap="goLogin">立即登录</button>
+  </view>
+</view>
+
+<view wx:else class="container">
+  <view class="tabs">
+    <view wx:for="{{tabs}}" wx:key="value" class="tab {{status === item.value ? 'active' : ''}}"
+      bindtap="switchTab" data-value="{{item.value}}">{{item.label}}</view>
+  </view>
+
+  <view class="between" style="margin-bottom:18rpx;">
+    <view class="muted">共 {{total}} 条预约</view>
+    <view class="btn small" bindtap="scanCheck">扫码核验</view>
+  </view>
+
+  <view wx:if="{{loading && !list.length}}" class="loading">加载中…</view>
+  <view wx:elif="{{!list.length}}" class="empty">暂无访客预约</view>
+
+  <view wx:for="{{list}}" wx:key="id" class="list-item">
+    <view class="top">
+      <h3>{{item.visitorName}}</h3>
+      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+    <view class="meta-line">
+      <view>来访：{{item.visitTimeText}}</view>
+      <view>被访：{{item.visitUserName || '-'}}</view>
+      <view>手机：{{item.phoneMaskText || '-'}}</view>
+      <view wx:if="{{item.plateNo}}">车牌：{{item.plateNo}}</view>
+    </view>
+    <view class="muted" style="margin-top:8rpx;">事由：{{item.reason}}</view>
+    <view class="row gap" style="margin-top:18rpx;justify-content:flex-end;">
+      <view wx:if="{{item.status === 'APPROVED'}}" class="btn small ghost" bindtap="showQr" data-id="{{item.id}}">通行码</view>
+      <view wx:if="{{item.status === 'PENDING'}}" class="btn small danger" bindtap="approve" data-id="{{item.id}}" data-approved="false">驳回</view>
+      <view wx:if="{{item.status === 'PENDING'}}" class="btn small" bindtap="approve" data-id="{{item.id}}" data-approved="true">通过</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && list.length}}" class="loading">加载更多…</view>
+  <view wx:if="{{!loading && list.length >= total && total > 0}}" class="empty" style="padding:24rpx 0;">没有更多了</view>
+</view>
+
+<view class="fab" bindtap="goCreate">＋<br/>预约</view>
+
+<view wx:if="{{qrVisible}}" class="modal-mask" bindtap="closeQr">
+  <view class="modal" catchtap="noop" style="text-align:center;">
+    <view class="title">访客通行码</view>
+    <image src="{{qrImage}}" mode="aspectFit" style="width:420rpx;height:420rpx;margin:24rpx auto;" />
+    <view class="muted">{{qrTitle}}</view>
+    <button class="btn ghost" style="margin-top:24rpx;" bindtap="closeQr">关闭</button>
+  </view>
+</view>

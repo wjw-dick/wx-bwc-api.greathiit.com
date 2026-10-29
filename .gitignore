@@ -1,0 +1,52 @@
+# Java
+backend/target/
+*.jar
+*.class
+*.log
+
+# Node
+node_modules/
+admin-web/node_modules/
+portal-web/node_modules/
+admin-web/dist/
+portal-web/dist/
+.npm/
+*.tsbuildinfo
+
+# Flutter/Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/
+app/ios/
+app/macos/
+app/linux/
+app/windows/
+app/web/
+app/.idea/
+
+# Runtime
+uploads/
+backend/uploads/
+logs/
+*.pid
+
+# Env / secrets
+.env
+deploy/.env
+deploy/k8s/secret.yaml
+github.txt
+deploy/fonts/*.ttf
+deploy/fonts/*.ttc
+deploy/fonts/*.otf
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# WeChat devtools
+miniprogram/.idea/
+miniprogram/project.private.config.json

@@ -1,0 +1,77 @@
+<view class="hero">
+  <view class="badge">{{tenant ? tenant.name : '校园安全门户'}}</view>
+  <view class="between">
+    <view class="flex1">
+      <h1>{{loggedIn && user ? user.realName : '平安校园'}}</h1>
+      <p>{{loggedIn ? '欢迎回来，今天也要注意安全。' : '访客预约 · 失物招领 · 安全资讯，一站直达。'}}</p>
+    </view>
+    <view wx:if="!loggedIn" class="btn small" bindtap="goLogin" style="width:auto;background:#fff;color:#0f2a52;">登录</view>
+  </view>
+</view>
+
+<view class="container">
+  <view wx:if="{{stats}}" class="stat-grid">
+    <view class="stat-card">
+      <view class="label">今日访客</view>
+      <view class="value">{{stats.visitorToday || 0}}</view>
+    </view>
+    <view class="stat-card">
+      <view class="label">待审预约</view>
+      <view class="value">{{stats.visitorPending || 0}}</view>
+    </view>
+    <view class="stat-card">
+      <view class="label">未闭环隐患</view>
+      <view class="value">{{stats.hazardOpen || 0}}</view>
+    </view>
+    <view class="stat-card">
+      <view class="label">今日巡逻打卡</view>
+      <view class="value">{{stats.patrolRecordToday || 0}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{warnings.length}}" class="card" style="margin-top:22rpx;border-left:6rpx solid #f59e0b;">
+    <view class="between">
+      <view class="section-title" style="margin:0;color:#8a4b00;">安全预警</view>
+      <view class="tag warn">{{warnings.length}} 条</view>
+    </view>
+    <view wx:for="{{warnings}}" wx:key="id" class="warning-item" style="padding:14rpx 0;border-bottom:1rpx solid #fef3e2;">
+      <view style="font-weight:600;color:#8a4b00;">{{item.title}}</view>
+      <view class="muted" style="margin-top:4rpx;">{{item.content}}</view>
+    </view>
+  </view>
+
+  <view class="section-title" style="margin-top:28rpx;">快捷服务</view>
+  <view class="quick-grid">
+    <view wx:for="{{quickLinks}}" wx:key="key" class="quick" bindtap="openLink" data-path="{{item.path}}">
+      <view class="icon">{{item.icon}}</view>
+      <text>{{item.title}}</text>
+    </view>
+  </view>
+
+  <view class="between" style="margin-top:32rpx;">
+    <view class="section-title" style="margin:0;">安全资讯</view>
+    <view class="muted" bindtap="openLink" data-path="/pages/news/index">更多 ›</view>
+  </view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{!notices.length}}" class="empty">暂无资讯</view>
+  <view wx:else class="card" style="padding:8rpx 24rpx;">
+    <view wx:for="{{notices}}" wx:key="id" class="notice-row" bindtap="openNotice" data-id="{{item.id}}"
+      style="padding:22rpx 0;border-bottom:1rpx solid #eef3fa;">
+      <view class="between">
+        <view style="font-weight:600;color:#0f2a52;flex:1;">{{item.title}}</view>
+        <view class="muted" style="font-size:22rpx;margin-left:16rpx;">{{item.publishTime}}</view>
+      </view>
+      <view class="muted" style="margin-top:6rpx;">{{item.category || '通知公告'}}</view>
+    </view>
+  </view>
+
+  <view class="card" style="margin-top:24rpx;background:#f8fbff;">
+    <view class="between">
+      <view>
+        <view style="font-weight:700;color:#0f2a52;">访客通行码核验</view>
+        <view class="muted" style="margin-top:6rpx;">门岗扫码 / 输入通行码快速核验</view>
+      </view>
+      <view class="btn small" bindtap="openVisitorList">查看预约</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bwc-web
+  namespace: bwc
+  labels:
+    app: bwc-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bwc-web
+  template:
+    metadata:
+      labels:
+        app: bwc-web
+    spec:
+      containers:
+        - name: web
+          image: bwc-web:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: uploads
+              mountPath: /usr/share/nginx/uploads
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: {cpu: "100m", memory: "128Mi"}
+            limits: {cpu: "500m", memory: "512Mi"}
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: bwc-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bwc-web
+  namespace: bwc
+spec:
+  selector:
+    app: bwc-web
+  ports:
+    - port: 80
+      targetPort: 80
