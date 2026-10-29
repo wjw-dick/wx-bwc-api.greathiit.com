@@ -14,8 +14,10 @@ import com.greathiit.bwc.module.lost.entity.BwcLostNotice;
 import com.greathiit.bwc.module.lost.mapper.BwcLostItemMapper;
 import com.greathiit.bwc.module.lost.mapper.BwcLostNoticeMapper;
 import com.greathiit.bwc.module.system.entity.SysMenu;
+import com.greathiit.bwc.module.system.entity.SysMessageTemplate;
 import com.greathiit.bwc.module.system.entity.SysTenant;
 import com.greathiit.bwc.module.system.mapper.SysMenuMapper;
+import com.greathiit.bwc.module.system.mapper.SysMessageTemplateMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantMapper;
 import com.greathiit.bwc.module.system.service.TenantService;
 import com.greathiit.bwc.module.visitor.dto.VisitorCreateRequest;
@@ -44,6 +46,7 @@ public class PublicController {
 
     private final SysTenantMapper tenantMapper;
     private final SysMenuMapper menuMapper;
+    private final SysMessageTemplateMapper messageTemplateMapper;
     private final BwcNoticeMapper noticeMapper;
     private final BwcWarningMapper warningMapper;
     private final BwcLostItemMapper lostItemMapper;
@@ -74,10 +77,45 @@ public class PublicController {
             result.put("code", tenant.getCode());
             result.put("type", tenant.getType());
             result.put("status", tenant.getStatus());
-            result.put("config", config);
+            result.put("config", publicTenantConfig(config));
             result.put("intro", config.getOrDefault("portal_intro", "校园安全，人人有责。"));
             result.put("dutyPhone", config.get("duty_phone"));
             result.put("logo", config.get("logo"));
+            return R.ok(result);
+        });
+    }
+
+    /**
+     * 公开页仅暴露学校展示类配置，避免租户配置中的支付/存储/通知密钥进入匿名响应。
+     */
+    private Map<String, String> publicTenantConfig(Map<String, String> config) {
+        Map<String, String> safe = new LinkedHashMap<>();
+        List<String> keys = List.of("school_name", "portal_intro", "duty_phone", "logo",
+                "notice_enabled", "official_account", "miniprogram", "parking_fee_enabled");
+        for (String key : keys) {
+            if (config.containsKey(key)) {
+                safe.put(key, config.get(key));
+            }
+        }
+        return safe;
+    }
+
+    @GetMapping("/tenant/{code}/subscribe-templates")
+    public R<List<Map<String, Object>>> subscribeTemplates(@PathVariable String code) {
+        return withTenant(code, () -> {
+            List<SysMessageTemplate> templates = messageTemplateMapper.selectList(
+                    new LambdaQueryWrapper<SysMessageTemplate>()
+                            .eq(SysMessageTemplate::getChannel, "MINI")
+                            .eq(SysMessageTemplate::getEnabled, 1));
+            List<Map<String, Object>> result = new java.util.ArrayList<>();
+            for (SysMessageTemplate template : templates) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("bizType", template.getBizType());
+                item.put("templateId", template.getTemplateId());
+                item.put("title", template.getTitle());
+                item.put("fieldsJson", template.getFieldsJson());
+                result.add(item);
+            }
             return R.ok(result);
         });
     }

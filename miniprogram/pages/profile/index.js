@@ -1,4 +1,5 @@
 const app = getApp()
+const subscribe = require('../../utils/subscribe')
 
 Page({
   data: {
@@ -52,6 +53,15 @@ Page({
 
   showAgreement() {
     this.setData({ agreementVisible: true })
+  },
+
+  async subscribeNotice() {
+    const result = await subscribe.requestSubscribe(['TODO', 'EVENT', 'WARNING'])
+    if (result.ok) {
+      wx.showToast({ title: '已开启消息通知', icon: 'success' })
+    } else {
+      wx.showToast({ title: result.reason || '未开启通知', icon: 'none' })
+    }
   },
 
   showAbout() {

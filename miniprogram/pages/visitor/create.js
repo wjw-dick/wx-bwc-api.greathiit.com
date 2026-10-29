@@ -1,5 +1,6 @@
 const app = getApp()
 const { request } = require('../../utils/request')
+const subscribe = require('../../utils/subscribe')
 const util = require('../../utils/util')
 
 Page({
@@ -95,5 +96,14 @@ Page({
 
   goList() {
     wx.switchTab({ url: '/pages/visitor/list' })
+  },
+
+  async subscribeNotice() {
+    const result = await subscribe.requestSubscribe(['VISITOR_APPROVE', 'TODO'])
+    if (result.ok) {
+      wx.showToast({ title: '已开启审批通知', icon: 'success' })
+    } else {
+      wx.showToast({ title: result.reason || '未开启通知', icon: 'none' })
+    }
   }
 })

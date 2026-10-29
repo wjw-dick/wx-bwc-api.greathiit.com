@@ -26,6 +26,11 @@
   </view>
 
   <view class="card" style="padding:8rpx 24rpx;">
+    <view class="link-row" bindtap="subscribeNotice">
+      <view class="link-icon">通</view>
+      <view class="flex1">消息订阅 / 审批与预警通知</view>
+      <view class="muted">›</view>
+    </view>
     <view class="link-row" bindtap="toggleLocale">
       <view class="link-icon">语</view>
       <view class="flex1">语言 / Language</view>

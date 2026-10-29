@@ -117,8 +117,9 @@ X-Tenant-Id: 2
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/health` | 健康检查 |
-| GET | `/tenant/{code}` | 学校门户基础信息 + 租户配置 |
+| GET | `/tenant/{code}` | 学校门户基础信息 + **公开白名单配置**（不含支付/存储/通知密钥） |
 | GET | `/tenant/{code}/menus?platform=h5` | 门户导航；`platform` 可为 `h5`/`miniprogram`/`app` |
+| GET | `/tenant/{code}/subscribe-templates` | 小程序订阅消息模板（仅启用项：`bizType`/`templateId`/`title`/`fieldsJson`） |
 | GET | `/tenant/{code}/notices?limit=20` | 已发布公告列表 |
 | GET | `/tenant/{code}/notices/{id}` | 公告详情（浏览量 +1） |
 | GET | `/tenant/{code}/warnings` | 已发布安全预警 |

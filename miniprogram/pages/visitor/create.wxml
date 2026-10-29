@@ -14,6 +14,7 @@
       <view class="muted" style="font-size:22rpx;margin-top:18rpx;">身份证号加密存储，页面仅展示脱敏信息</view>
     </view>
     <button class="btn block" bindtap="goList">查看我的预约</button>
+    <button class="btn block ghost" style="margin-top:18rpx;" bindtap="subscribeNotice">开启审批结果通知</button>
     <button class="btn block ghost" style="margin-top:18rpx;" bindtap="again">再次预约</button>
   </view>
 

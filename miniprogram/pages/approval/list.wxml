@@ -26,6 +26,10 @@
       </view>
     </view>
 
+    <view class="card" style="margin-top:16rpx;background:#f8fbff;text-align:center;" bindtap="subscribeNotice">
+      <view class="muted">开启审批与事件订阅提醒</view>
+    </view>
+
     <view wx:if="{{loading && !groups.length}}" class="loading">加载中…</view>
     <view wx:elif="{{!groups.length}}" class="empty">暂无待办审批，辛苦了</view>
 
