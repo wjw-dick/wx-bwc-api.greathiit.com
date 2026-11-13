@@ -30,10 +30,10 @@
         </el-tabs>
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="submit">
           <el-form-item :label="t('login.username')" prop="username">
-            <el-input v-model="form.username" size="large" placeholder="demo_admin / system" :prefix-icon="User" />
+            <el-input v-model="form.username" size="large" placeholder="请输入账号" :prefix-icon="User" />
           </el-form-item>
           <el-form-item :label="t('login.password')" prop="password">
-            <el-input v-model="form.password" size="large" type="password" show-password placeholder="Admin@123" :prefix-icon="Lock" />
+            <el-input v-model="form.password" size="large" type="password" show-password placeholder="请输入密码" :prefix-icon="Lock" />
           </el-form-item>
           <el-form-item v-if="loginType === 'tenant'" :label="t('login.tenantCode')">
             <el-input v-model="form.tenantCode" size="large" placeholder="DEMO / UNIV，留空自动匹配" />
@@ -66,14 +66,17 @@ const auth = useAuthStore()
 const formRef = ref()
 const loading = ref(false)
 const loginType = ref<'tenant' | 'platform'>('tenant')
-const form = reactive({ username: 'demo_admin', password: 'Admin@123', tenantCode: '' })
+const form = reactive({ username: '', password: '', tenantCode: '' })
 const rules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
 async function submit() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) {
+    return
+  }
   loading.value = true
   try {
     await auth.login({
@@ -85,10 +88,8 @@ async function submit() {
     ElMessage.success('登录成功')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
-  } catch (e: any) {
-    if (e?.message && !e.message.includes('请求失败')) {
-      // http 层已提示
-    }
+  } catch {
+    // 失败提示统一由 http 响应拦截器展示，避免此处二次吞掉错误
   } finally {
     loading.value = false
   }

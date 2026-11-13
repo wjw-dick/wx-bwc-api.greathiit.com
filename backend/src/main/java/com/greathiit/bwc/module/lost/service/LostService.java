@@ -119,6 +119,9 @@ public class LostService {
             throw new BizException(400, "该物品已认领或已处置");
         }
         claim.setId(null);
+        if (claim.getClaimantId() == null && AuthContext.get() != null) {
+            claim.setClaimantId(AuthContext.userId());
+        }
         claim.setClaimTime(LocalDateTime.now());
         claim.setStatus("PENDING");
         claimMapper.insert(claim);

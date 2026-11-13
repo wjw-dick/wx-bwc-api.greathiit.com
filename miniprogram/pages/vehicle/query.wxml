@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="card">
+    <view class="field">
+      <view class="label">预约编号</view>
+      <input value="{{form.id}}" data-field="id" bindinput="onInput" type="number" placeholder="预约成功后的数字编号" />
+    </view>
+    <view class="field">
+      <view class="label">预约手机号</view>
+      <input value="{{form.phone}}" data-field="phone" bindinput="onInput" type="number" maxlength="11" placeholder="预约时填写的手机号" />
+    </view>
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+    <button class="btn block" loading="{{loading}}" bindtap="query">查询预约进度</button>
+  </view>
+
+  <view wx:if="{{result}}" class="card" style="margin-top:22rpx;">
+    <view class="between">
+      <view class="title" style="margin:0;">{{result.plateNo}}</view>
+      <view class="tag {{result.status === 'APPROVED' ? 'ok' : (result.status === 'REJECTED' ? 'danger' : 'warn')}}">{{statusText}}</view>
+    </view>
+    <view class="meta-line"><text>驾驶人：{{result.visitorName || '-'}}</text><text>手机号：{{result.phoneMask || '-'}}</text></view>
+    <view class="meta-line"><text>入校：{{result.visitTime || '-'}}</text><text>离校：{{result.leaveTime || '-'}}</text></view>
+    <view class="meta-line"><text>来访事由：{{result.reason || '-'}}</text><text>车牌下发：{{authText}}</text></view>
+    <view wx:if="{{result.remark}}" class="muted" style="margin-top:12rpx;">备注/审批意见：{{result.remark}}</view>
+  </view>
+
+  <view wx:if="{{!result && !loading}}" class="empty">输入预约编号和手机号查询审批与车牌下发状态</view>
+</view>

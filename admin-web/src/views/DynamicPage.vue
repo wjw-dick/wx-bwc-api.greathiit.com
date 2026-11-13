@@ -36,7 +36,8 @@ const specialComponents: Record<string, Component> = {
   Users: defineAsyncComponent(() => import('@/views/Users.vue')),
   Roles: defineAsyncComponent(() => import('@/views/Roles.vue')),
   AuditLogs: defineAsyncComponent(() => import('@/views/AuditLogs.vue')),
-  PlateConfig: defineAsyncComponent(() => import('@/views/PlateConfig.vue'))
+  PlateConfig: defineAsyncComponent(() => import('@/views/PlateConfig.vue')),
+  GateCheck: defineAsyncComponent(() => import('@/views/GateCheck.vue'))
 }
 
 const extraSpecial: Record<string, string> = {

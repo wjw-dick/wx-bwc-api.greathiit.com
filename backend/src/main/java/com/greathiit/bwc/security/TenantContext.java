@@ -29,6 +29,11 @@ public final class TenantContext {
         return Boolean.TRUE.equals(IGNORE.get());
     }
 
+    /** 仅切换跨租户忽略标记（用于登录态建立前按用户显式租户查询） */
+    public static void setIgnoreTenant(boolean ignoreTenant) {
+        IGNORE.set(ignoreTenant);
+    }
+
     public static boolean isPlatform() {
         return Boolean.TRUE.equals(PLATFORM.get());
     }

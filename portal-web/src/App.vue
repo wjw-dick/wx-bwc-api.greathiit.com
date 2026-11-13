@@ -98,23 +98,32 @@ const code = computed(() => String(route.params.code || 'DEMO'))
 const showFab = computed(() => code.value && !route.path.includes('/visitor'))
 
 const defaultNav = computed(() => [
-  { path: `/${code.value}`, label: t('nav.home'), key: 'home' },
-  { path: `/${code.value}/visitor`, label: t('nav.visitor'), key: 'visitor' },
-  { path: `/${code.value}/lost`, label: t('nav.lost'), key: 'lost' },
-  { path: `/${code.value}/news`, label: t('nav.news'), key: 'news' },
-  { path: `/${code.value}/school`, label: t('nav.school'), key: 'school' }
+  { path: `/${code.value}`, label: t('nav.home'), key: '/' },
+  { path: `/${code.value}/visitor`, label: t('nav.visitor'), key: '/visitor' },
+  { path: `/${code.value}/vehicle`, label: t('nav.vehicle'), key: '/vehicle' },
+  { path: `/${code.value}/safety`, label: t('nav.safety'), key: '/safety' },
+  { path: `/${code.value}/lost`, label: t('nav.lost'), key: '/lost' },
+  { path: `/${code.value}/news`, label: t('nav.news'), key: '/news' },
+  { path: `/${code.value}/school`, label: t('nav.school'), key: '/school' }
 ])
 
 const navItems = computed(() => {
   const menus = store.state.menus || []
   if (!menus.length) return defaultNav.value
-  return menus
+  const items = menus
     .filter((m) => m.path)
     .map((m) => ({
       path: menuPath(code.value, m.path),
       label: locale.value.startsWith('en') && m.nameEn ? m.nameEn : m.name,
       key: m.path
     }))
+  // 菜单模板未升级时补齐公开门户固定入口，保证预约/上报链路可达
+  for (const item of defaultNav.value) {
+    if (!items.some((exist) => exist.key === item.key || exist.path === item.path)) {
+      items.push(item)
+    }
+  }
+  return items
 })
 
 function isActive(path: string) {

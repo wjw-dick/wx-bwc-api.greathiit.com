@@ -9,6 +9,8 @@ import com.greathiit.bwc.common.QrCodeUtil;
 import com.greathiit.bwc.common.R;
 import com.greathiit.bwc.module.system.service.AuditService;
 import com.greathiit.bwc.module.visitor.dto.VisitorCreateRequest;
+import com.greathiit.bwc.module.visitor.entity.BwcLateReturn;
+import com.greathiit.bwc.module.visitor.entity.BwcTempEntry;
 import com.greathiit.bwc.module.visitor.entity.BwcVisitRecord;
 import com.greathiit.bwc.module.visitor.entity.BwcVisitorAppointment;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitRecordMapper;
@@ -135,6 +137,52 @@ public class VisitorController {
         }
         wrapper.orderByDesc(BwcVisitRecord::getId);
         return R.ok(visitRecordMapper.selectPage(new Page<>(page, size), wrapper));
+    }
+
+    // ------------------------------------------------------------------ 临时入校
+
+    @GetMapping("/temp-entries")
+    @RequirePermission("visitor:read")
+    public R<IPage<BwcTempEntry>> tempEntries(@RequestParam(defaultValue = "1") long page,
+                                              @RequestParam(defaultValue = "10") long size,
+                                              @RequestParam(required = false) String status,
+                                              @RequestParam(required = false) String keyword) {
+        return R.ok(visitorService.tempEntryPage(page, size, status, keyword));
+    }
+
+    @PostMapping("/temp-entry")
+    @RequirePermission("visitor:write")
+    public R<BwcTempEntry> createTempEntry(@RequestBody Map<String, String> body) {
+        return R.ok(visitorService.createTempEntry(body.get("visitorName"), body.get("idCard"),
+                body.get("phone"), body.get("reason"), body.get("visitUser")));
+    }
+
+    @PostMapping("/temp-entry/{id}/out")
+    @RequirePermission("visitor:write")
+    public R<BwcTempEntry> outTempEntry(@PathVariable Long id) {
+        return R.ok(visitorService.outTempEntry(id));
+    }
+
+    // ------------------------------------------------------------------ 晚归登记
+
+    @GetMapping("/late-returns")
+    @RequirePermission("visitor:read")
+    public R<IPage<BwcLateReturn>> lateReturns(@RequestParam(defaultValue = "1") long page,
+                                               @RequestParam(defaultValue = "10") long size,
+                                               @RequestParam(required = false) String confirmStatus) {
+        return R.ok(visitorService.lateReturnPage(page, size, confirmStatus));
+    }
+
+    @PostMapping("/late-return")
+    @RequirePermission("visitor:write")
+    public R<BwcLateReturn> reportLateReturn(@RequestBody BwcLateReturn body) {
+        return R.ok(visitorService.reportLateReturn(body));
+    }
+
+    @PostMapping("/late-return/{id}/confirm")
+    @RequirePermission("visitor:write")
+    public R<BwcLateReturn> confirmLateReturn(@PathVariable Long id) {
+        return R.ok(visitorService.confirmLateReturn(id, AuthContext.username()));
     }
 
     @GetMapping("/stats")

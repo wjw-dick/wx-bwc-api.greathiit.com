@@ -12,7 +12,7 @@
       </el-select>
       <el-button type="primary" :icon="Search" @click="reload">{{ t('common.search') }}</el-button>
       <el-button :icon="Refresh" @click="reset">{{ t('common.reset') }}</el-button>
-      <el-button v-if="canWrite" type="success" :icon="Plus" @click="openCreate">{{ t('common.add') }}</el-button>
+      <el-button v-if="canWrite && !readOnlyResource" type="success" :icon="Plus" @click="openCreate">{{ t('common.add') }}</el-button>
       <el-button v-if="resource === 'visitor-appointment'" :icon="Download" @click="exportVisitor">导出</el-button>
     </div>
 
@@ -44,7 +44,7 @@
       <el-table-column :label="t('common.actions')" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">{{ t('common.detail') }}</el-button>
-          <el-button v-if="canWrite" link type="primary" @click="openEdit(row)">{{ t('common.edit') }}</el-button>
+          <el-button v-if="canWrite && !readOnlyResource" link type="primary" @click="openEdit(row)">{{ t('common.edit') }}</el-button>
           <el-dropdown @command="(cmd: string) => runAction(cmd, row)">
             <el-button link type="primary">更多<el-icon><ArrowDown /></el-icon></el-button>
             <template #dropdown>
@@ -52,7 +52,7 @@
                 <el-dropdown-item v-for="action in actions" :key="action.key" :command="action.key">
                   {{ action.label }}
                 </el-dropdown-item>
-                <el-dropdown-item v-if="canWrite" command="delete" divided>删除</el-dropdown-item>
+                <el-dropdown-item v-if="canWrite && !readOnlyResource" command="delete" divided>删除</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -100,7 +100,7 @@
 
     <el-drawer v-model="detailVisible" :title="def.title + '详情'" size="520px">
       <el-descriptions :column="1" border>
-        <el-descriptions-item v-for="field in tableFields" :key="field.prop" :label="field.label">
+        <el-descriptions-item v-for="field in detailFields" :key="field.prop" :label="field.label">
           {{ display(field, detailRow[field.prop]) }}
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailRow.createTime }}</el-descriptions-item>
@@ -133,6 +133,9 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const def = computed(() => resources[props.resource] || { key: props.resource, module: 'system', title: props.resource, fields: [] })
 const canWrite = computed(() => !(auth.isPlatform && auth.tenantHeader))
+const readOnlyResource = computed(() => [
+  'visit-record', 'vehicle-log', 'plate-log', 'audit-log', 'message-log', 'message'
+].includes(props.resource))
 
 const rows = ref<any[]>([])
 const total = ref(0)
@@ -152,9 +155,10 @@ const qrTitle = ref('')
 
 const statusField = computed<FieldDef | undefined>(() => def.value.fields.find((f) => f.prop === 'status'))
 const tableFields = computed(() => def.value.fields
-  .filter((f) => f.type !== 'textarea' && f.type !== 'image' && !['description', 'content', 'configJson', 'itemsJson'].includes(f.prop))
+  .filter((f) => !f.hideInTable && f.type !== 'textarea' && f.type !== 'image' && !['description', 'content', 'configJson', 'itemsJson'].includes(f.prop))
   .slice(0, 9))
 const formFields = computed(() => def.value.fields)
+const detailFields = computed(() => def.value.fields.filter((f) => f.type !== 'image'))
 
 const actions = computed(() => {
   switch (props.resource) {
@@ -163,24 +167,61 @@ const actions = computed(() => {
         { key: 'approve', label: '审批通过' },
         { key: 'reject', label: '驳回' },
         { key: 'qr', label: '查看通行码' },
+        { key: 'check', label: '通行核验' },
         { key: 'cancel', label: '取消预约' }
       ]
+    case 'temp-entry':
+      return [{ key: 'out', label: '离校登记' }]
+    case 'late-return':
+      return [{ key: 'confirm', label: '确认晚归' }]
     case 'vehicle-appointment':
-      return [{ key: 'approve', label: '审批通过' }, { key: 'reject', label: '驳回' }]
+      return [{ key: 'approve', label: '审批通过' }, { key: 'reject', label: '驳回' }, { key: 'retry', label: '重试车牌下发' }]
     case 'vehicle':
-      return [{ key: 'issue', label: '下发固定车牌' }, { key: 'remove', label: '注销车牌' }]
+      return [
+        { key: 'approve', label: '备案通过' },
+        { key: 'reject', label: '备案驳回' },
+        { key: 'issue', label: '下发固定车牌' },
+        { key: 'remove', label: '注销车牌' }
+      ]
+    case 'violation':
+      return [{ key: 'handle', label: '处理完成' }]
+    case 'security-event':
+      return [
+        { key: 'assign', label: '分派处置' },
+        { key: 'handle', label: '记录处置' },
+        { key: 'close', label: '结案归档' }
+      ]
+    case 'hazard':
+      return [
+        { key: 'assign', label: '分派整改' },
+        { key: 'rectify', label: '提交整改' },
+        { key: 'accept', label: '验收通过' },
+        { key: 'rejectAccept', label: '验收退回' },
+        { key: 'pdf', label: '整改通知单' }
+      ]
+    case 'device-repair':
+      return [{ key: 'assign', label: '分派维修' }, { key: 'follow', label: '维修跟进' }, { key: 'finish', label: '完成维修' }]
+    case 'feedback':
+      return [{ key: 'handle', label: '处理反馈' }]
+    case 'emergency-supply':
+      return [{ key: 'borrow', label: '物资领用' }, { key: 'return', label: '物资归还' }]
+    case 'lost-claim':
+      return [{ key: 'approve', label: '核验通过' }, { key: 'reject', label: '驳回认领' }]
+    case 'lost-disposal':
+      return [{ key: 'approve', label: '处置通过' }, { key: 'reject', label: '处置驳回' }]
     case 'report-apply':
       return [{ key: 'approve', label: '审批通过' }, { key: 'reject', label: '驳回' }, { key: 'pdf', label: '打印审批单' }]
     case 'monitor-access':
-      return [{ key: 'approve', label: '初审通过' }, { key: 'leader', label: '校领导终审' }, { key: 'reject', label: '驳回' }]
-    case 'device-repair':
-      return [{ key: 'finish', label: '完成维修' }]
+      return [
+        { key: 'approve', label: '初审通过' },
+        { key: 'leader', label: '校领导终审' },
+        { key: 'reject', label: '驳回' },
+        { key: 'access', label: '调取登记' }
+      ]
     case 'emergency-event':
       return [{ key: 'respond', label: '记录响应' }]
     case 'fire-facility':
       return [{ key: 'qr', label: '查看二维码' }]
-    case 'hazard':
-      return [{ key: 'pdf', label: '整改通知单' }]
     default:
       return []
   }
@@ -220,7 +261,7 @@ function openCreate() {
 function defaultForm() {
   const data: any = {}
   for (const field of def.value.fields) {
-    if (['status'].includes(field.prop)) data[field.prop] = 'NORMAL'
+    // 状态留空，由后端/数据库按业务默认值落库（如访客预约 PENDING、公告 PUBLISHED）
     if (field.type === 'number') data[field.prop] = field.prop.toLowerCase().includes('count') ? 0 : undefined
     if (field.type === 'switch') data[field.prop] = 1
   }
@@ -241,7 +282,23 @@ function openDetail(row: any) {
 async function save() {
   saving.value = true
   try {
-    if (form.id) {
+    if (!form.id && props.resource === 'temp-entry') {
+      await http.post('/visitor/temp-entry', {
+        visitorName: form.visitorName,
+        phone: form.phone,
+        idCard: form.idCard,
+        reason: form.reason,
+        visitUser: form.visitUser
+      })
+    } else if (!form.id && props.resource === 'late-return') {
+      await http.post('/visitor/late-return', {
+        studentName: form.studentName,
+        dorm: form.dorm,
+        type: form.type,
+        reason: form.reason,
+        recordTime: form.recordTime
+      })
+    } else if (form.id) {
       await http.put(`/crud/${props.resource}/${form.id}`, form)
     } else {
       await http.post(`/crud/${props.resource}`, form)
@@ -262,17 +319,132 @@ async function runAction(command: string, row: any) {
     load()
     return
   }
+  if (command === 'check') {
+    const { value } = await ElMessageBox.prompt('请输入访客通行码（扫码结果）', '通行核验', { inputPlaceholder: 'PASS...' })
+    const data: any = await http.post('/visitor/check', { passCode: value, gate: '后台门岗', method: 'MANUAL' })
+    ElMessage.success(data.direction === 'IN' ? '已登记入校' : '已登记离校')
+    load()
+    return
+  }
+  if (command === 'out') {
+    await http.post(`/visitor/temp-entry/${row.id}/out`)
+    ElMessage.success('已完成离校登记')
+    load()
+    return
+  }
+  if (command === 'confirm') {
+    await http.post(`/visitor/late-return/${row.id}/confirm`)
+    ElMessage.success('已确认晚归')
+    load()
+    return
+  }
+  if (command === 'retry') {
+    await http.post(`/vehicle/appointments/${row.id}/retry`)
+    ElMessage.success('已重新下发临时车牌')
+    load()
+    return
+  }
+  if (command === 'access') {
+    const { value } = await ElMessageBox.prompt('请输入调取登记（谁调取、调取内容）', '调取登记', { inputType: 'textarea' })
+    await http.post(`/report/monitor-access/${row.id}/access`, { accessRecord: value })
+    ElMessage.success('已登记调取记录')
+    load()
+    return
+  }
+  if (command === 'assign') {
+    if (props.resource === 'security-event') {
+      const { value } = await ElMessageBox.prompt('请输入处置人姓名', '分派处置', { inputPlaceholder: '保安队长' })
+      await http.post(`/event/${row.id}/assign`, { assignToName: value })
+    } else if (props.resource === 'hazard') {
+      const { value } = await ElMessageBox.prompt('请输入整改责任人姓名', '分派整改', { inputPlaceholder: '后勤维修' })
+      const days = await ElMessageBox.prompt('请输入整改期限（天）', '整改期限', {
+        inputValue: '7', inputPattern: /^\d+$/, inputErrorMessage: '请输入数字天数'
+      })
+      await http.post(`/fire/hazards/${row.id}/assign`, { assignToName: value, days: Number(days.value) })
+    } else if (props.resource === 'device-repair') {
+      const { value } = await ElMessageBox.prompt('请输入维修人姓名/班组', '分派维修')
+      await http.post(`/device/repairs/${row.id}/assign`, { assignTo: value })
+    }
+    ElMessage.success('已分派')
+    load()
+    return
+  }
+  if (command === 'handle') {
+    if (props.resource === 'security-event') {
+      const { value } = await ElMessageBox.prompt('请输入现场处置情况', '记录处置', { inputType: 'textarea' })
+      await http.post(`/event/${row.id}/handle`, { result: value })
+    } else if (props.resource === 'feedback') {
+      const { value } = await ElMessageBox.prompt('请输入处理结果', '处理反馈', { inputType: 'textarea' })
+      await http.post(`/logistics/feedback/${row.id}/handle`, { status: 'DONE', result: value })
+    } else if (props.resource === 'violation') {
+      const { value } = await ElMessageBox.prompt('请输入违停处理结果', '处理违停', { inputType: 'textarea' })
+      await http.post(`/vehicle/violations/${row.id}/handle`, { result: value })
+    }
+    ElMessage.success('已记录')
+    load()
+    return
+  }
+  if (command === 'close') {
+    await ElMessageBox.confirm('结案后事件归档，确认结案？', '结案归档', { type: 'warning' })
+    await http.post(`/event/${row.id}/close`, {})
+    ElMessage.success('已结案')
+    load()
+    return
+  }
+  if (command === 'rectify') {
+    const { value } = await ElMessageBox.prompt('请输入整改方案与完成情况', '提交整改', { inputType: 'textarea' })
+    await http.post(`/fire/hazards/${row.id}/rectify`, { plan: value })
+    ElMessage.success('已提交整改')
+    load()
+    return
+  }
+  if (command === 'accept' || command === 'rejectAccept') {
+    const approved = command === 'accept'
+    let remark = ''
+    if (approved) {
+      await ElMessageBox.confirm('确认整改到位并销号？', '验收通过', { type: 'warning' })
+    } else {
+      const res = await ElMessageBox.prompt('请输入退回原因', '验收退回')
+      remark = res.value
+    }
+    await http.post(`/fire/hazards/${row.id}/accept`, { approved, remark })
+    ElMessage.success(approved ? '已验收销号' : '已退回整改')
+    load()
+    return
+  }
+  if (command === 'follow') {
+    const { value } = await ElMessageBox.prompt('请输入维修跟进情况', '维修跟进', { inputType: 'textarea' })
+    await http.post(`/device/repairs/${row.id}/follow`, { content: value })
+    ElMessage.success('已记录跟进')
+    load()
+    return
+  }
+  if (command === 'borrow' || command === 'return') {
+    const { value } = await ElMessageBox.prompt('请输入数量', command === 'borrow' ? '物资领用' : '物资归还', {
+      inputValue: '1', inputPattern: /^\d+$/, inputErrorMessage: '请输入数字'
+    })
+    await http.post(`/emergency/supplies/${row.id}/${command === 'borrow' ? 'borrow' : 'return'}`, { quantity: Number(value) })
+    ElMessage.success(command === 'borrow' ? '已领用' : '已归还')
+    load()
+    return
+  }
   if (command === 'approve' || command === 'reject') {
     const approved = command === 'approve'
-    await http.post(`/visitor/appointments/${row.id}/approve`, { approved }).catch(async () => {
-      if (props.resource === 'vehicle-appointment') {
-        await http.post(`/vehicle/appointments/${row.id}/approve`, { approved })
-      } else if (props.resource === 'report-apply') {
-        await http.post(`/report/applies/${row.id}/approve`, { approved })
-      } else if (props.resource === 'monitor-access') {
-        await http.post(`/report/monitor-access/${row.id}/approve`, { approved, stage: 'DEPT' })
-      }
-    })
+    if (props.resource === 'vehicle-appointment') {
+      await http.post(`/vehicle/appointments/${row.id}/approve`, { approved })
+    } else if (props.resource === 'report-apply') {
+      await http.post(`/report/applies/${row.id}/approve`, { approved })
+    } else if (props.resource === 'monitor-access') {
+      await http.post(`/report/monitor-access/${row.id}/approve`, { approved, stage: 'DEPT' })
+    } else if (props.resource === 'lost-claim') {
+      await http.post(`/lost/claims/${row.id}/approve`, { approved })
+    } else if (props.resource === 'lost-disposal') {
+      await http.post(`/lost/disposals/${row.id}/approve`, { approved })
+    } else if (props.resource === 'vehicle') {
+      await http.post(`/vehicle/vehicles/${row.id}/approve`, { approved })
+    } else {
+      await http.post(`/visitor/appointments/${row.id}/approve`, { approved })
+    }
     ElMessage.success(approved ? '已通过' : '已驳回')
     load()
   } else if (command === 'leader') {

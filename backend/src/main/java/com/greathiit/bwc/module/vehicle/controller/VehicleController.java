@@ -47,6 +47,26 @@ public class VehicleController {
         return R.ok(vehicleService.pageVehicle(page, size, keyword, authStatus));
     }
 
+    @PostMapping("/register")
+    public R<BwcVehicle> register(@RequestBody Map<String, String> body) {
+        return R.ok(vehicleService.registerVehicle(body));
+    }
+
+    @GetMapping("/my")
+    public R<List<BwcVehicle>> myVehicles() {
+        return R.ok(vehicleService.myVehicles());
+    }
+
+    @PostMapping("/vehicles/{id}/approve")
+    @RequirePermission("vehicle:write")
+    public R<BwcVehicle> approveRegistration(@PathVariable Long id,
+                                             @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> data = body == null ? Map.of() : body;
+        boolean approved = Boolean.parseBoolean(String.valueOf(data.getOrDefault("approved", true)));
+        String remark = data.get("remark") == null ? null : String.valueOf(data.get("remark"));
+        return R.ok(vehicleService.approveRegistration(id, approved, remark));
+    }
+
     @PostMapping("/vehicles/{id}/issue")
     @RequirePermission("vehicle:write")
     public R<BwcVehicle> issue(@PathVariable Long id) {
@@ -99,6 +119,23 @@ public class VehicleController {
     @RequirePermission("vehicle:write")
     public R<BwcVehicleAppointment> retry(@PathVariable Long id) {
         return R.ok(vehicleService.retryAppointment(id));
+    }
+
+    @PostMapping("/violations/report")
+    public R<com.greathiit.bwc.module.vehicle.entity.BwcViolation> reportViolation(@RequestBody Map<String, String> body) {
+        return R.ok(vehicleService.reportViolation(body));
+    }
+
+    @GetMapping("/violations/my")
+    public R<List<com.greathiit.bwc.module.vehicle.entity.BwcViolation>> myViolations() {
+        return R.ok(vehicleService.myViolations());
+    }
+
+    @PostMapping("/violations/{id}/handle")
+    @RequirePermission("vehicle:write")
+    public R<com.greathiit.bwc.module.vehicle.entity.BwcViolation> handleViolation(@PathVariable Long id,
+                                                                                   @RequestBody Map<String, String> body) {
+        return R.ok(vehicleService.handleViolation(id, body.get("result")));
     }
 
     @GetMapping("/logs")

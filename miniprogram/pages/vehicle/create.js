@@ -87,6 +87,12 @@ Page({
     }
   },
 
+  goQuery() {
+    const id = this.data.result && this.data.result.id ? this.data.result.id : ''
+    const phone = this.data.form.phone || ''
+    wx.navigateTo({ url: `/pages/vehicle/query?id=${id}&phone=${phone}` })
+  },
+
   goBack() {
     wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/index/index' }) })
   }

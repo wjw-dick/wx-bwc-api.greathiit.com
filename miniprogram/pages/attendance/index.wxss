@@ -1,0 +1,5 @@
+.clock-card { text-align: center; padding: 44rpx 30rpx; }
+.clock-time { font-size: 56rpx; font-weight: 800; color: #0f2a52; letter-spacing: 2rpx; }
+.clock-date { color: #7b8ca6; font-size: 24rpx; margin-top: 6rpx; }
+.clock-actions { display: flex; gap: 16rpx; margin-top: 30rpx; }
+.clock-actions .btn { flex: 1; }

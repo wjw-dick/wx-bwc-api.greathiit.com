@@ -52,9 +52,30 @@ page {
 .field .label .required { color: #ef4444; margin-left: 4rpx; }
 .field input, .field textarea, .field picker, .field .picker-value {
   width: 100%; background: #fbfdff; border: 1rpx solid #dbe5f2; border-radius: 16rpx;
-  padding: 20rpx 22rpx; font-size: 28rpx; color: #16233a; box-sizing: border-box;
+  font-size: 28rpx; color: #16233a; box-sizing: border-box;
 }
-.field textarea { height: 180rpx; }
+/* 小程序 input 默认高度较小，必须显式设置高度和行高，否则文字会被上下裁切 */
+.field input {
+  height: 88rpx;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 22rpx;
+}
+.field textarea {
+  height: 180rpx;
+  line-height: 1.6;
+  padding: 20rpx 22rpx;
+}
+.field picker {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+.field .picker-value {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 22rpx;
+}
 .field .hint { font-size: 22rpx; color: #94a3b8; margin-top: 8rpx; }
 
 .list-item {

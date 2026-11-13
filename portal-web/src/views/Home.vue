@@ -136,6 +136,20 @@ const quickLinks = computed(() => [
     tone: 'blue'
   },
   {
+    path: `${base.value}/vehicle`,
+    title: t('nav.vehicle'),
+    desc: locale.value.startsWith('en') ? 'Register an incoming vehicle in advance' : '外来车辆提前登记，审批后自动放行车牌',
+    icon: '车',
+    tone: 'navy'
+  },
+  {
+    path: `${base.value}/safety`,
+    title: t('nav.safety'),
+    desc: locale.value.startsWith('en') ? 'Report incidents, hazards and faults' : '治安事件、消防隐患、设备故障在线上报',
+    icon: '报',
+    tone: 'red'
+  },
+  {
     path: `${base.value}/lost`,
     title: t('nav.lost'),
     desc: locale.value.startsWith('en') ? 'Browse and register found items' : '浏览待认领物品，登记拾获信息',
@@ -262,7 +276,7 @@ onMounted(async () => {
 .dot.green { background: #10b981; }
 .dot.amber { background: #f59e0b; }
 
-.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: -34px; position: relative; z-index: 2; }
+.quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: -34px; position: relative; z-index: 2; }
 .quick-card {
   background: #fff; border-radius: var(--radius); padding: 18px; display: flex; align-items: center; gap: 12px;
   border: 1px solid var(--line); box-shadow: 0 12px 26px rgba(15, 42, 82, 0.06); transition: all 0.18s ease;
@@ -276,6 +290,7 @@ onMounted(async () => {
 .quick-icon.amber { background: #fff4dd; color: #c47a06; }
 .quick-icon.green { background: #e6f8f0; color: #0f9d63; }
 .quick-icon.navy { background: #e8edf7; color: #0f2a52; }
+.quick-icon.red { background: #fff1f2; color: #be123c; }
 .quick-card div { min-width: 0; }
 .quick-card strong { font-size: 15px; }
 .quick-card p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }

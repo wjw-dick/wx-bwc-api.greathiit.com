@@ -13,7 +13,7 @@ Page({
     ],
     form: {
       name: '', categoryIndex: 0, location: '', foundDate: '',
-      description: '', finder: '', storageLocation: ''
+      description: '', finder: '', phone: '', storageLocation: ''
     },
     submitting: false,
     success: false,
@@ -55,6 +55,7 @@ Page({
           foundTime: f.foundDate ? `${f.foundDate} 00:00:00` : undefined,
           description: f.description || undefined,
           finder: f.finder || undefined,
+          phone: f.phone || undefined,
           storageLocation: f.storageLocation || undefined
         }
       })

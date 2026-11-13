@@ -1,0 +1,6 @@
+.result-row { display: flex; gap: 14rpx; margin-top: 10rpx; }
+.result-option {
+  flex: 1; text-align: center; padding: 20rpx 0; border-radius: 16rpx;
+  border: 1rpx solid #dbe5f2; background: #fbfdff; color: #64748b; font-size: 26rpx;
+}
+.result-option.active { border-color: #9dc3fa; background: #eef6ff; color: #2563eb; font-weight: 700; }

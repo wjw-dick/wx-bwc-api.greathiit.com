@@ -28,7 +28,13 @@
           <view class="tag {{item.status === 'CLAIMED' ? 'ok' : ''}}">{{item.statusText}}</view>
         </view>
         <view class="muted" style="margin-top:6rpx;">{{item.categoryLabel}} · {{item.location || '地点待补充'}}</view>
+        <view wx:if="{{item.finderPhoneMask}}" class="muted" style="font-size:22rpx;margin-top:2rpx;">拾获人手机号：{{item.finderPhoneMask}}</view>
         <view class="muted" style="font-size:22rpx;margin-top:4rpx;">拾获时间：{{item.foundTimeText}}</view>
+        <view class="card-actions">
+          <text class="muted" style="font-size:22rpx;">拾获人：{{item.finder || '热心师生'}}</text>
+          <view wx:if="{{item.status === 'FOUND' || item.status === 'PUBLISHED'}}" class="btn small" data-id="{{item.id}}" catchtap="goClaim">申请认领</view>
+          <view wx:else class="tag ok">已认领</view>
+        </view>
       </view>
     </view>
   </block>
@@ -39,10 +45,10 @@
       <view class="title" style="margin-top:12rpx;">登录后查看认领进度</view>
       <button class="btn" style="margin-top:24rpx;" bindtap="goLogin">立即登录</button>
     </view>
-    <view wx:elif="{{!claims.length}}" class="empty">暂无认领申请</view>
+    <view wx:elif="{{!claims.length}}" class="empty">暂无认领申请，可在失物墙选择物品申请认领</view>
     <view wx:for="{{claims}}" wx:key="id" class="list-item">
       <view class="top">
-        <h3>认领申请 #{{item.id}}</h3>
+        <h3>认领编号 #{{item.id}}</h3>
         <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
       </view>
       <view class="meta-line">

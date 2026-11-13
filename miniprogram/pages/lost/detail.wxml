@@ -20,6 +20,7 @@
       <view class="detail-row"><text>拾获时间</text><text>{{item.foundTimeText}}</text></view>
       <view class="detail-row"><text>保管地点</text><text>{{item.storageLocation || '保卫处失物招领点'}}</text></view>
       <view class="detail-row"><text>拾获人</text><text>{{item.finder || '热心师生'}}</text></view>
+      <view class="detail-row"><text>拾获人手机号</text><text>{{item.finderPhoneMask || '-'}}</text></view>
       <view class="detail-block">
         <view class="muted">物品描述</view>
         <view style="margin-top:8rpx;">{{item.description || '暂无详细描述'}}</view>

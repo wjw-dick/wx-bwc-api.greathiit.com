@@ -8,7 +8,9 @@
 
   <block wx:else>
     <view class="tabs">
-      <view class="tab {{tab === 'feedback' ? 'active' : ''}}" data-tab="feedback" bindtap="switchTab">报修与反馈</view>
+      <view class="tab {{tab === 'feedback' ? 'active' : ''}}" data-tab="feedback" bindtap="switchTab">意见反馈</view>
+      <view class="tab {{tab === 'report' ? 'active' : ''}}" data-tab="report" bindtap="switchTab">安全报备</view>
+      <view class="tab {{tab === 'device' ? 'active' : ''}}" data-tab="device" bindtap="switchTab">设备报修</view>
       <view class="tab {{tab === 'monitor' ? 'active' : ''}}" data-tab="monitor" bindtap="switchTab">调取监控</view>
     </view>
 
@@ -50,6 +52,98 @@
         </view>
         <view class="muted" style="margin-top:8rpx;">{{item.content}}</view>
         <view wx:if="{{item.result}}" class="muted" style="margin-top:8rpx;color:#0f9d63;">处理结果：{{item.result}}</view>
+      </view>
+    </block>
+
+    <block wx:elif="{{tab === 'report'}}">
+      <view class="card">
+        <view class="field">
+          <view class="label">报备类型</view>
+          <picker mode="selector" range="{{reportTypes}}" value="{{reportForm.typeIndex}}" bindchange="onReportType">
+            <view class="picker-value">{{reportTypes[reportForm.typeIndex]}}</view>
+          </picker>
+        </view>
+        <view class="field">
+          <view class="label">报备标题<text class="required">*</text></view>
+          <input value="{{reportForm.title}}" data-field="title" bindinput="onReportInput" maxlength="60" placeholder="如：元旦晚会安全报备" />
+        </view>
+        <view class="field">
+          <view class="label">活动地点</view>
+          <input value="{{reportForm.location}}" data-field="location" bindinput="onReportInput" maxlength="80" placeholder="如：学校礼堂" />
+        </view>
+        <view class="field">
+          <view class="label">开始时间<text class="required">*</text></view>
+          <view class="row gap">
+            <picker mode="date" value="{{reportForm.startDate}}" data-field="startDate" bindchange="onReportDate" style="flex:1;">
+              <view class="picker-value">{{reportForm.startDate || '选择日期'}}</view>
+            </picker>
+            <picker mode="time" value="{{reportForm.startClock}}" data-field="startClock" bindchange="onReportDate" style="flex:1;">
+              <view class="picker-value">{{reportForm.startClock || '选择时间'}}</view>
+            </picker>
+          </view>
+        </view>
+        <view class="field">
+          <view class="label">结束时间</view>
+          <view class="row gap">
+            <picker mode="date" value="{{reportForm.endDate}}" data-field="endDate" bindchange="onReportDate" style="flex:1;">
+              <view class="picker-value">{{reportForm.endDate || '选择日期'}}</view>
+            </picker>
+            <picker mode="time" value="{{reportForm.endClock}}" data-field="endClock" bindchange="onReportDate" style="flex:1;">
+              <view class="picker-value">{{reportForm.endClock || '选择时间'}}</view>
+            </picker>
+          </view>
+        </view>
+        <view class="field">
+          <view class="label">安全方案/报备内容<text class="required">*</text></view>
+          <textarea value="{{reportForm.content}}" data-field="content" bindinput="onReportInput" maxlength="1000" placeholder="请描述活动规模、安全措施、责任人等" />
+        </view>
+        <view wx:if="{{error}}" class="error-text">{{error}}</view>
+        <button class="btn block" loading="{{submitting}}" bindtap="submitReport">提交报备</button>
+      </view>
+
+      <view class="section-title">我的报备</view>
+      <view wx:if="{{!reportList.length}}" class="empty">暂无报备记录</view>
+      <view wx:for="{{reportList}}" wx:key="id" class="list-item">
+        <view class="top">
+          <h3>{{item.title}}</h3>
+          <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+        <view class="meta-line">
+          <view>{{item.type || '报备'}}</view>
+          <view>{{item.startTimeText}}</view>
+        </view>
+        <view wx:if="{{item.approveRemark}}" class="muted" style="margin-top:8rpx;">审批意见：{{item.approveRemark}}</view>
+        <view wx:if="{{item.receiptNo}}" class="muted" style="margin-top:8rpx;color:#0f9d63;">电子回执：{{item.receiptNo}}</view>
+      </view>
+    </block>
+
+    <block wx:elif="{{tab === 'device'}}">
+      <view class="card">
+        <view class="field">
+          <view class="label">设备名称<text class="required">*</text></view>
+          <input value="{{deviceForm.deviceName}}" data-field="deviceName" bindinput="onDeviceInput" maxlength="60" placeholder="如：东门道闸、教学楼A座监控" />
+        </view>
+        <view class="field">
+          <view class="label">故障描述<text class="required">*</text></view>
+          <textarea value="{{deviceForm.faultDesc}}" data-field="faultDesc" bindinput="onDeviceInput" maxlength="500" placeholder="请描述故障现象和影响范围" />
+        </view>
+        <view wx:if="{{error}}" class="error-text">{{error}}</view>
+        <button class="btn block" loading="{{submitting}}" bindtap="submitDevice">提交报修</button>
+      </view>
+
+      <view class="section-title">我的报修</view>
+      <view wx:if="{{!deviceList.length}}" class="empty">暂无报修记录</view>
+      <view wx:for="{{deviceList}}" wx:key="id" class="list-item">
+        <view class="top">
+          <h3>{{item.repairNo || item.deviceName}}</h3>
+          <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+        <view class="meta-line">
+          <view>{{item.deviceName}}</view>
+          <view>{{item.reportTimeText}}</view>
+        </view>
+        <view class="muted" style="margin-top:8rpx;">{{item.faultDesc}}</view>
+        <view wx:if="{{item.result}}" class="muted" style="margin-top:8rpx;color:#0f9d63;">维修结果：{{item.result}}</view>
       </view>
     </block>
 

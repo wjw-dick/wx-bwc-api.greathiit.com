@@ -8,6 +8,10 @@
     "pages/login/index",
     "pages/visitor/create",
     "pages/vehicle/create",
+    "pages/vehicle/query",
+    "pages/vehicle/register",
+    "pages/vehicle/violation",
+    "pages/vehicle/logs",
     "pages/lost/detail",
     "pages/lost/report",
     "pages/report/index",
@@ -16,7 +20,12 @@
     "pages/approval/list",
     "pages/news/index",
     "pages/news/detail",
-    "pages/profile/password"
+    "pages/profile/password",
+    "pages/visitor/gate",
+    "pages/event/index",
+    "pages/fire/index",
+    "pages/patrol/index",
+    "pages/attendance/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0f2a52",

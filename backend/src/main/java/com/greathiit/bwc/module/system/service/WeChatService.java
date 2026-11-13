@@ -63,9 +63,17 @@ public class WeChatService {
     }
 
     public SysWechatConfig config(Long tenantId, String appType) {
-        return configMapper.selectOne(new LambdaQueryWrapper<SysWechatConfig>()
-                .eq(SysWechatConfig::getTenantId, tenantId)
-                .eq(SysWechatConfig::getAppType, appType));
+        // 未登录场景（如 /api/auth/wx-login）TenantContext 为 0，租户插件会追加 tenant_id=0 导致查不到配置，
+        // 这里按调用方显式传入的 tenantId 查询，查询期间临时关闭租户过滤。
+        boolean oldIgnore = TenantContext.isIgnoreTenant();
+        TenantContext.setIgnoreTenant(true);
+        try {
+            return configMapper.selectOne(new LambdaQueryWrapper<SysWechatConfig>()
+                    .eq(SysWechatConfig::getTenantId, tenantId)
+                    .eq(SysWechatConfig::getAppType, appType));
+        } finally {
+            TenantContext.setIgnoreTenant(oldIgnore);
+        }
     }
 
     private String appId(Long tenantId, String appType) {
@@ -106,11 +114,18 @@ public class WeChatService {
             url = API + "/sns/oauth2/access_token?appid=" + appid + "&secret=" + secret
                     + "&code=" + code + "&grant_type=authorization_code";
         }
-        Map<?, ?> response = rest.getForObject(url, Map.class);
-        Map<String, String> result = new HashMap<>();
-        if (response == null) {
+        // 微信在部分错误场景返回 text/plain，直接按 Map 反序列化会抛 UnknownContentTypeException，这里先取文本再解析
+        String raw = rest.getForObject(url, String.class);
+        if (raw == null || raw.isBlank()) {
             throw new BizException(500, "微信接口无响应");
         }
+        Map<?, ?> response;
+        try {
+            response = cn.hutool.json.JSONUtil.parseObj(raw);
+        } catch (Exception ex) {
+            throw new BizException(400, "微信登录失败：" + raw.trim());
+        }
+        Map<String, String> result = new HashMap<>();
         if (response.get("errcode") != null && !"0".equals(String.valueOf(response.get("errcode")))) {
             throw new BizException(400, "微信登录失败：" + response.get("errmsg"));
         }

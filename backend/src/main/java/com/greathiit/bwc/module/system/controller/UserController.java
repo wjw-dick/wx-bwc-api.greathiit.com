@@ -53,6 +53,7 @@ public class UserController {
     private final CryptoService cryptoService;
     private final PermissionService permissionService;
     private final AuditService auditService;
+    private final com.greathiit.bwc.module.system.service.TenantService tenantService;
 
     @GetMapping
     @RequirePermission("system:read")
@@ -229,11 +230,24 @@ public class UserController {
         return R.ok(result);
     }
 
+    /** 对象级校验：角色必须存在且属于当前租户（平台超管忽略租户过滤） */
+    private void requireRole(Long id) {
+        if (roleMapper.selectById(id) == null) {
+            throw BizException.notFound("角色不存在或不属于当前租户");
+        }
+    }
+
     @GetMapping("/roles")
     @RequirePermission("system:read")
     public R<List<SysRole>> roles() {
         return R.ok(roleMapper.selectList(new LambdaQueryWrapper<SysRole>()
                 .orderByAsc(SysRole::getId)));
+    }
+
+    @GetMapping("/roles/menu-options")
+    @RequirePermission("system:read")
+    public R<List<Map<String, Object>>> roleMenuOptions() {
+        return R.ok(tenantService.roleMenuTree(TenantContext.getTenantId()));
     }
 
     @PostMapping("/roles")
@@ -252,6 +266,7 @@ public class UserController {
     @PutMapping("/roles/{id}")
     @RequirePermission("system:write")
     public R<SysRole> updateRole(@PathVariable Long id, @RequestBody SysRole role) {
+        requireRole(id);
         role.setId(id);
         roleMapper.updateById(role);
         return R.ok(roleMapper.selectById(id));
@@ -260,6 +275,7 @@ public class UserController {
     @DeleteMapping("/roles/{id}")
     @RequirePermission("system:write")
     public R<Void> deleteRole(@PathVariable Long id) {
+        requireRole(id);
         Long used = userMapper.selectCount(new LambdaQueryWrapper<SysTenantUser>()
                 .eq(SysTenantUser::getRoleId, id));
         if (used != null && used > 0) {
@@ -277,6 +293,7 @@ public class UserController {
     @GetMapping("/roles/{id}/menus")
     @RequirePermission("system:read")
     public R<List<Long>> roleMenus(@PathVariable Long id) {
+        requireRole(id);
         List<SysRoleMenu> list = roleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenu>()
                 .eq(SysRoleMenu::getRoleId, id));
         return R.ok(list.stream().map(SysRoleMenu::getMenuId).toList());
@@ -285,6 +302,7 @@ public class UserController {
     @PutMapping("/roles/{id}/menus")
     @RequirePermission("system:write")
     public R<Void> saveRoleMenus(@PathVariable Long id, @RequestBody List<Long> menuIds) {
+        requireRole(id);
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
         if (menuIds != null) {
             for (Long menuId : menuIds) {
@@ -296,6 +314,7 @@ public class UserController {
             }
         }
         auditService.record("role", "MENUS", String.valueOf(id), "角色菜单授权");
+        permissionService.evictAll();
         return R.ok();
     }
 

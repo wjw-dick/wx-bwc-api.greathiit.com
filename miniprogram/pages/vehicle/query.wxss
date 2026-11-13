@@ -1,0 +1,2 @@
+.card .title { color: #0f2a52; font-size: 34rpx; font-weight: 700; }
+.meta-line { display: flex; flex-wrap: wrap; gap: 8rpx 24rpx; margin-top: 14rpx; color: #64748b; font-size: 24rpx; }

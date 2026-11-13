@@ -22,6 +22,8 @@ import com.greathiit.bwc.module.visitor.mapper.BwcLateReturnMapper;
 import com.greathiit.bwc.module.visitor.mapper.BwcTempEntryMapper;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitRecordMapper;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitorAppointmentMapper;
+import com.greathiit.bwc.module.vehicle.service.VehicleService;
+import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -52,6 +54,7 @@ public class VisitorService {
     private final ParamService paramService;
     private final NotifyService notifyService;
     private final AuditService auditService;
+    private final VehicleService vehicleService;
 
     @Transactional
     public BwcVisitorAppointment create(VisitorCreateRequest request, String source) {
@@ -79,6 +82,14 @@ public class VisitorService {
         entity.setPlateNo(request.getPlateNo());
         entity.setVisitUserId(request.getVisitUserId());
         entity.setVisitUserName(request.getVisitUserName());
+        // 登录用户自助预约时默认本人为被访人，保证审批提醒能落到具体账号
+        if (entity.getVisitUserId() == null && AuthContext.get() != null) {
+            entity.setVisitUserId(AuthContext.get().getUserId());
+        }
+        if ((entity.getVisitUserName() == null || entity.getVisitUserName().isBlank())
+                && AuthContext.get() != null) {
+            entity.setVisitUserName(AuthContext.get().getRealName());
+        }
         entity.setStatus("PENDING");
         entity.setSource(source == null ? "PC" : source);
         entity.setRemark(request.getRemark());
@@ -116,6 +127,10 @@ public class VisitorService {
         entity.setApproveTime(LocalDateTime.now());
         entity.setApproveRemark(remark);
         appointmentMapper.updateById(entity);
+        if (approved && entity.getPlateNo() != null && !entity.getPlateNo().isBlank()) {
+            vehicleService.createVisitorVehicle(entity.getPlateNo(), entity.getVisitorName(),
+                    entity.getPhoneMask(), entity.getReason(), entity.getVisitTime(), entity.getLeaveTime());
+        }
         notifyService.sendByTemplate(entity.getTenantId(), entity.getVisitUserId(), "VISITOR_APPROVE",
                 "访客审批结果",
                 "访客 " + entity.getVisitorName() + " 的预约已" + (approved ? "通过" : "驳回")
@@ -171,6 +186,8 @@ public class VisitorService {
         }
         auditService.record("visitor", "PASS", passCode, "通行记录：" + direction);
         Map<String, Object> result = new HashMap<>();
+        result.put("pass", true);
+        result.put("message", "IN".equals(direction) ? "核验通过，已登记入校" : "核验通过，已登记离校");
         result.put("direction", direction);
         result.put("visitorName", entity.getVisitorName());
         result.put("visitUserName", entity.getVisitUserName());
@@ -179,18 +196,90 @@ public class VisitorService {
         return result;
     }
 
+    /**
+     * 门岗临时入校登记：访客未预约时由门岗现场登记，离校时补录出场时间。
+     */
     @Transactional
-    public BwcTempEntry createTempEntry(BwcTempEntry entry) {
-        if (isBlacklisted(entry.getVisitorName(), null)) {
+    public BwcTempEntry createTempEntry(String visitorName, String idCard, String phone, String reason,
+                                        String visitUser) {
+        if (visitorName == null || visitorName.isBlank()) {
+            throw new BizException(400, "访客姓名不能为空");
+        }
+        if (isBlacklisted(visitorName, idCard)) {
             throw BizException.forbidden("该访客在黑名单中，禁止入校");
         }
-        entry.setIdCardMask(cryptoService.maskIdCard(entry.getIdCardMask()));
-        entry.setPhoneMask(cryptoService.maskPhone(entry.getPhoneMask()));
-        entry.setInTime(entry.getInTime() == null ? LocalDateTime.now() : entry.getInTime());
+        BwcTempEntry entry = new BwcTempEntry();
+        entry.setVisitorName(visitorName);
+        entry.setIdCardEnc(cryptoService.encrypt(idCard));
+        entry.setIdCardMask(cryptoService.maskIdCard(idCard));
+        entry.setPhoneEnc(cryptoService.encrypt(phone));
+        entry.setPhoneMask(cryptoService.maskPhone(phone));
+        entry.setReason(reason);
+        entry.setVisitUser(visitUser);
+        entry.setInTime(LocalDateTime.now());
+        entry.setOperator(AuthContext.username());
         entry.setStatus("IN");
         tempEntryMapper.insert(entry);
         auditService.record("visitor", "TEMP_ENTRY", entry.getVisitorName(), "临时入校登记");
         return entry;
+    }
+
+    @Transactional
+    public BwcTempEntry outTempEntry(Long id) {
+        BwcTempEntry entry = tempEntryMapper.selectById(id);
+        if (entry == null) {
+            throw BizException.notFound("临时入校记录不存在");
+        }
+        if (!"IN".equals(entry.getStatus())) {
+            throw new BizException(400, "该访客已离校");
+        }
+        entry.setOutTime(LocalDateTime.now());
+        entry.setStatus("OUT");
+        tempEntryMapper.updateById(entry);
+        auditService.record("visitor", "TEMP_ENTRY_OUT", entry.getVisitorName(), "临时入校离校登记");
+        return entry;
+    }
+
+    public IPage<BwcTempEntry> tempEntryPage(long page, long size, String status, String keyword) {
+        LambdaQueryWrapper<BwcTempEntry> wrapper = new LambdaQueryWrapper<>();
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(BwcTempEntry::getStatus, status);
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.like(BwcTempEntry::getVisitorName, keyword);
+        }
+        wrapper.orderByDesc(BwcTempEntry::getId);
+        return tempEntryMapper.selectPage(new Page<>(page, size), wrapper);
+    }
+
+    /**
+     * 学生晚归/不归自助登记，值班人员确认后闭环。
+     */
+    @Transactional
+    public BwcLateReturn reportLateReturn(BwcLateReturn entity) {
+        entity.setId(null);
+        if (entity.getStudentId() == null && AuthContext.get() != null) {
+            entity.setStudentId(AuthContext.userId());
+        }
+        if ((entity.getStudentName() == null || entity.getStudentName().isBlank()) && AuthContext.get() != null) {
+            entity.setStudentName(AuthContext.get().getRealName());
+        }
+        entity.setRecordTime(entity.getRecordTime() == null ? LocalDateTime.now() : entity.getRecordTime());
+        entity.setConfirmStatus("PENDING");
+        lateReturnMapper.insert(entity);
+        notifyService.sendByTemplate(entity.getTenantId(), null, "TODO", "晚归登记待确认",
+                entity.getStudentName() + " 登记晚归：" + entity.getDorm(), entity.getId());
+        auditService.record("visitor", "LATE_RETURN", entity.getStudentName(), "晚归登记");
+        return entity;
+    }
+
+    public IPage<BwcLateReturn> lateReturnPage(long page, long size, String confirmStatus) {
+        LambdaQueryWrapper<BwcLateReturn> wrapper = new LambdaQueryWrapper<>();
+        if (confirmStatus != null && !confirmStatus.isBlank()) {
+            wrapper.eq(BwcLateReturn::getConfirmStatus, confirmStatus);
+        }
+        wrapper.orderByDesc(BwcLateReturn::getId);
+        return lateReturnMapper.selectPage(new Page<>(page, size), wrapper);
     }
 
     @Transactional
@@ -241,6 +330,11 @@ public class VisitorService {
         }
         if (end != null) {
             wrapper.le(BwcVisitorAppointment::getVisitTime, end);
+        }
+        // C 端（教职工/学生/被访人）只能看到本人作为被访人的预约，避免租户内互相可见
+        String role = AuthContext.roleCode();
+        if ("STAFF".equals(role) || "STUDENT".equals(role) || "VISITEE".equals(role)) {
+            wrapper.eq(BwcVisitorAppointment::getVisitUserId, AuthContext.userId());
         }
         wrapper.orderByDesc(BwcVisitorAppointment::getId);
         return appointmentMapper.selectPage(new Page<>(page, size), wrapper);

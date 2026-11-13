@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,10 +67,22 @@ public final class PdfUtil {
     }
 
     private static PDFont loadFont(PDDocument document, String fontPath) throws IOException {
-        String path = fontPath == null || fontPath.isBlank()
-                ? "/usr/share/fonts/chinese/stsong.ttf" : fontPath;
-        if (Files.exists(Path.of(path))) {
-            return PDType0Font.load(document, new File(path));
+        List<String> candidates = new ArrayList<>();
+        if (fontPath != null && !fontPath.isBlank()) {
+            candidates.add(fontPath);
+        }
+        candidates.add("/usr/share/fonts/chinese/stsong.ttf");
+        candidates.add("C:/Windows/Fonts/simhei.ttf");
+        candidates.add("C:/Windows/Fonts/simfang.ttf");
+        candidates.add("C:/Windows/Fonts/simsunb.ttf");
+        for (String path : candidates) {
+            if (Files.exists(Path.of(path))) {
+                try {
+                    return PDType0Font.load(document, new File(path));
+                } catch (IOException | RuntimeException ignored) {
+                    // 尝试下一个候选字体
+                }
+            }
         }
         return org.apache.pdfbox.pdmodel.font.PDType1Font.HELVETICA;
     }

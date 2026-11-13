@@ -1,0 +1,106 @@
+<view class="container">
+  <view class="tabs">
+    <view class="tab {{tab === 'check' ? 'active' : ''}}" data-tab="check" bindtap="switchTab">通行核验</view>
+    <view class="tab {{tab === 'temp' ? 'active' : ''}}" data-tab="temp" bindtap="switchTab">临时入校</view>
+    <view class="tab {{tab === 'late' ? 'active' : ''}}" data-tab="late" bindtap="switchTab">晚归登记</view>
+  </view>
+
+  <block wx:if="{{tab === 'check'}}">
+    <view class="card scan-card">
+      <view class="scan-icon">码</view>
+      <view class="title">访客通行码核验</view>
+      <view class="subtitle">扫描访客通行二维码，自动登记入校/离校</view>
+      <button class="btn block" style="margin-top:28rpx;" bindtap="scanCheck" loading="{{checking}}">扫码核验</button>
+    </view>
+    <view class="card">
+      <view class="field">
+        <view class="label">通行码</view>
+        <input value="{{checkCode}}" bindinput="onCheckInput" placeholder="扫码失败时可手动输入通行码" maxlength="40" />
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block ghost" bindtap="submitCheck" loading="{{checking}}">手动核验</button>
+    </view>
+  </block>
+
+  <block wx:elif="{{tab === 'temp'}}">
+    <view class="card">
+      <view class="field">
+        <view class="label">访客姓名<text class="required">*</text></view>
+        <input value="{{tempForm.visitorName}}" data-field="visitorName" bindinput="onTempInput" placeholder="请输入访客姓名" maxlength="30" />
+      </view>
+      <view class="field">
+        <view class="label">手机号</view>
+        <input value="{{tempForm.phone}}" data-field="phone" bindinput="onTempInput" type="number" maxlength="11" placeholder="11 位手机号" />
+      </view>
+      <view class="field">
+        <view class="label">身份证号</view>
+        <input value="{{tempForm.idCard}}" data-field="idCard" bindinput="onTempInput" maxlength="18" placeholder="选填，用于黑名单核验" />
+      </view>
+      <view class="field">
+        <view class="label">来访事由</view>
+        <input value="{{tempForm.reason}}" data-field="reason" bindinput="onTempInput" maxlength="60" placeholder="如：送快递、家长送物" />
+      </view>
+      <view class="field">
+        <view class="label">被访人/部门</view>
+        <input value="{{tempForm.visitUser}}" data-field="visitUser" bindinput="onTempInput" maxlength="30" placeholder="选填" />
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" bindtap="submitTemp" loading="{{submitting}}">登记入校</button>
+    </view>
+
+    <view class="section-title">未离校访客</view>
+    <view wx:if="{{!tempList.length}}" class="empty">暂无未离校记录</view>
+    <view wx:for="{{tempList}}" wx:key="id" class="list-item">
+      <view class="top">
+        <h3>{{item.visitorName}}</h3>
+        <view class="tag warn">在校</view>
+      </view>
+      <view class="meta-line">
+        <view class="entry-no">入校：{{item.inTimeText}}</view>
+        <view class="entry-no">手机：{{item.phoneMask || '-'}}</view>
+      </view>
+      <view class="muted" wx:if="{{item.reason}}">事由：{{item.reason}}</view>
+      <button class="btn small ghost" style="margin-top:14rpx;" data-id="{{item.id}}" bindtap="outTemp">离校登记</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="field">
+        <view class="label">学生姓名<text class="required">*</text></view>
+        <input value="{{lateForm.studentName}}" data-field="studentName" bindinput="onLateInput" maxlength="30" placeholder="请输入学生姓名" />
+      </view>
+      <view class="field">
+        <view class="label">宿舍/班级<text class="required">*</text></view>
+        <input value="{{lateForm.dorm}}" data-field="dorm" bindinput="onLateInput" maxlength="40" placeholder="如：3号宿舍楼 502" />
+      </view>
+      <view class="field">
+        <view class="label">登记类型</view>
+        <picker mode="selector" range="{{lateTypes}}" value="{{lateForm.typeIndex}}" bindchange="onLateType">
+          <view class="picker-value">{{lateTypes[lateForm.typeIndex]}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">原因说明</view>
+        <textarea value="{{lateForm.reason}}" data-field="reason" bindinput="onLateInput" maxlength="200" placeholder="选填" />
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" bindtap="submitLate" loading="{{submitting}}">提交登记</button>
+    </view>
+
+    <view class="section-title">待确认记录</view>
+    <view wx:if="{{!lateList.length}}" class="empty">暂无待确认记录</view>
+    <view wx:for="{{lateList}}" wx:key="id" class="list-item">
+      <view class="top">
+        <h3>{{item.studentName}}</h3>
+        <view class="tag warn">{{item.type || '晚归'}}</view>
+      </view>
+      <view class="meta-line">
+        <view>{{item.dorm}}</view>
+        <view>{{item.recordTimeText}}</view>
+      </view>
+      <view class="muted" wx:if="{{item.reason}}">原因：{{item.reason}}</view>
+      <button class="btn small ghost" style="margin-top:14rpx;" data-id="{{item.id}}" bindtap="confirmLate">确认</button>
+    </view>
+  </block>
+</view>

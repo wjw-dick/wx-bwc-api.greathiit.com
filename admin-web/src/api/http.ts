@@ -37,10 +37,13 @@ http.interceptors.response.use(
     const message = error?.response?.data?.message || error.message || '网络异常'
     if (status === 401) {
       const auth = useAuthStore()
+      const onLoginPage = router.currentRoute.value.path === '/login'
+      const serverMessage = error?.response?.data?.message
       auth.logout()
-      if (router.currentRoute.value.path !== '/login') {
+      if (!onLoginPage) {
         router.push('/login')
       }
+      ElMessage.error(serverMessage || (onLoginPage ? '账号或密码错误，请检查后重试' : '登录已失效，请重新登录'))
     } else {
       ElMessage.error(message)
     }

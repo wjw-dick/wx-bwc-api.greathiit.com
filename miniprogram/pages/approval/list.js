@@ -100,8 +100,12 @@ Page({
         if (kind === 'vehicle') url = `/vehicle/appointments/${id}/approve`
         if (kind === 'claim') url = `/lost/claims/${id}/approve`
         if (kind === 'report') url = `/report/applies/${id}/approve`
+        if (kind === 'monitor') url = `/report/monitor-access/${id}/approve`
+        const body = kind === 'monitor'
+          ? { approved: isApprove, stage: 'DEPT' }
+          : { approved: isApprove }
         try {
-          await request({ url, method: 'POST', data: { approved: isApprove } })
+          await request({ url, method: 'POST', data: body })
           wx.showToast({ title: isApprove ? '已通过' : '已驳回', icon: 'success' })
           this.load()
         } catch (err) {

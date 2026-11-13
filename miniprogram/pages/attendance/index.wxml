@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="card clock-card">
+    <view class="clock-time">{{nowTime || '--:--'}}</view>
+    <view class="clock-date">{{today}}</view>
+    <view class="clock-actions">
+      <button class="btn" bindtap="onCheckIn" loading="{{submitting}}">上班打卡</button>
+      <button class="btn ghost" bindtap="onCheckOut" loading="{{submitting}}">下班打卡</button>
+    </view>
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+  </view>
+
+  <view class="section-title">我的考勤记录</view>
+  <view wx:if="{{!records.length}}" class="empty">暂无考勤记录</view>
+  <view wx:for="{{records}}" wx:key="id" class="list-item">
+    <view class="top">
+      <h3>{{item.typeText}}</h3>
+      <view class="tag ok">{{item.status || 'NORMAL'}}</view>
+    </view>
+    <view class="meta-line">
+      <view>{{item.checkTimeText}}</view>
+      <view>{{item.method || 'GPS'}}</view>
+    </view>
+  </view>
+</view>

@@ -32,6 +32,8 @@ public class BwcLostItem extends BaseEntity {
 
     private String finder;
 
+    private String finderPhoneMask;
+
     private String status;
 
     private String storageLocation;

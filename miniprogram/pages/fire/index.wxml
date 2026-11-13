@@ -1,0 +1,80 @@
+<view class="container">
+  <view class="tabs">
+    <view class="tab {{tab === 'inspect' ? 'active' : ''}}" data-tab="inspect" bindtap="switchTab">扫码巡检</view>
+    <view class="tab {{tab === 'hazard' ? 'active' : ''}}" data-tab="hazard" bindtap="switchTab">隐患上报</view>
+  </view>
+
+  <block wx:if="{{tab === 'inspect'}}">
+    <view class="card">
+      <view class="field">
+        <view class="label">设施二维码<text class="required">*</text></view>
+        <view class="row gap">
+          <input value="{{qrCode}}" disabled placeholder="点击右侧按钮扫描设施二维码" style="flex:1;" />
+          <button class="btn small" bindtap="scanFacility">扫码</button>
+        </view>
+      </view>
+      <view class="field">
+        <view class="label">巡检结果</view>
+        <view class="result-row">
+          <view class="result-option {{inspectForm.result === 'NORMAL' ? 'active' : ''}}" data-value="NORMAL" bindtap="onResult">正常</view>
+          <view class="result-option {{inspectForm.result === 'ABNORMAL' ? 'active' : ''}}" data-value="ABNORMAL" bindtap="onResult">异常</view>
+        </view>
+      </view>
+      <view class="field">
+        <view class="label">巡检备注</view>
+        <textarea value="{{inspectForm.remark}}" data-field="remark" bindinput="onInspectInput" maxlength="300" placeholder="异常时请描述具体情况" />
+      </view>
+      <view class="field">
+        <view class="label">现场照片</view>
+        <view class="photo-row">
+          <image wx:for="{{inspectForm.photos ? inspectForm.photos.split(',') : []}}" wx:key="*this" src="{{item}}" mode="aspectFill" />
+          <view class="photo-add" bindtap="chooseInspectPhoto">+</view>
+        </view>
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" bindtap="submitInspect" loading="{{submitting}}">提交巡检</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card">
+      <view class="field">
+        <view class="label">隐患等级</view>
+        <picker mode="selector" range="{{levels}}" value="{{hazardForm.levelIndex}}" bindchange="onLevel">
+          <view class="picker-value">{{levels[hazardForm.levelIndex]}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">隐患位置<text class="required">*</text></view>
+        <input value="{{hazardForm.location}}" data-field="location" bindinput="onHazardInput" maxlength="80" placeholder="如：3号宿舍楼二层走廊" />
+      </view>
+      <view class="field">
+        <view class="label">隐患描述<text class="required">*</text></view>
+        <textarea value="{{hazardForm.description}}" data-field="description" bindinput="onHazardInput" maxlength="500" placeholder="请描述隐患情况" />
+      </view>
+      <view class="field">
+        <view class="label">现场照片</view>
+        <view class="photo-row">
+          <image wx:for="{{hazardForm.photos ? hazardForm.photos.split(',') : []}}" wx:key="*this" src="{{item}}" mode="aspectFill" />
+          <view class="photo-add" bindtap="chooseHazardPhoto">+</view>
+        </view>
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" bindtap="submitHazard" loading="{{submitting}}">提交隐患</button>
+    </view>
+  </block>
+
+  <view class="section-title">隐患台账</view>
+  <view wx:if="{{!hazards.length}}" class="empty">暂无隐患记录</view>
+  <view wx:for="{{hazards}}" wx:key="id" class="list-item">
+    <view class="top">
+      <h3>{{item.hazardNo || item.location}}</h3>
+      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+    <view class="meta-line">
+      <view>{{item.location}}</view>
+      <view>{{item.reportTimeText}}</view>
+    </view>
+    <view class="muted" style="margin-top:8rpx;">{{item.description}}</view>
+  </view>
+</view>

@@ -3,6 +3,8 @@ package com.greathiit.bwc.module.lost.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.greathiit.bwc.common.BizException;
+import com.greathiit.bwc.common.CryptoService;
 import com.greathiit.bwc.common.R;
 import com.greathiit.bwc.module.lost.entity.BwcLostClaim;
 import com.greathiit.bwc.module.lost.entity.BwcLostDisposal;
@@ -12,6 +14,7 @@ import com.greathiit.bwc.module.lost.mapper.BwcLostClaimMapper;
 import com.greathiit.bwc.module.lost.mapper.BwcLostDisposalMapper;
 import com.greathiit.bwc.module.lost.mapper.BwcLostNoticeMapper;
 import com.greathiit.bwc.module.lost.service.LostService;
+import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +34,7 @@ public class LostController {
     private final BwcLostNoticeMapper noticeMapper;
     private final BwcLostClaimMapper claimMapper;
     private final BwcLostDisposalMapper disposalMapper;
+    private final CryptoService cryptoService;
 
     @GetMapping("/items")
     @RequirePermission("lost:read")
@@ -79,6 +83,37 @@ public class LostController {
     @RequirePermission("lost:write")
     public R<BwcLostClaim> claim(@RequestBody BwcLostClaim claim) {
         return R.ok(lostService.claim(claim));
+    }
+
+    /**
+     * 小程序/登录用户自助认领：不依赖 lost:write，提交后只属于自己的认领记录。
+     */
+    @PostMapping("/claims/self")
+    public R<BwcLostClaim> selfClaim(@RequestBody Map<String, String> body) {
+        String phone = body.getOrDefault("phone", "").trim();
+        if (!phone.matches("^1[3-9]\\d{9}$")) {
+            throw new BizException(400, "请输入正确的手机号");
+        }
+        Long itemId;
+        try {
+            itemId = Long.valueOf(body.getOrDefault("itemId", ""));
+        } catch (Exception e) {
+            throw new BizException(400, "请选择要认领的物品");
+        }
+        BwcLostClaim claim = new BwcLostClaim();
+        claim.setItemId(itemId);
+        claim.setClaimant(body.getOrDefault("claimant", "").trim());
+        claim.setPhoneMask(cryptoService.maskPhone(phone));
+        claim.setIdCardMask(cryptoService.maskIdCard(body.get("idCard")));
+        claim.setRemark(body.get("remark"));
+        return R.ok(lostService.claim(claim));
+    }
+
+    @GetMapping("/claims/self")
+    public R<List<BwcLostClaim>> myClaims() {
+        return R.ok(claimMapper.selectList(new LambdaQueryWrapper<BwcLostClaim>()
+                .eq(BwcLostClaim::getClaimantId, AuthContext.userId())
+                .orderByDesc(BwcLostClaim::getId)));
     }
 
     @PostMapping("/claims/{id}/approve")

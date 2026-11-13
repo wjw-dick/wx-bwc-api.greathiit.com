@@ -1,0 +1,3 @@
+.photo-row { margin-top: 10rpx; }
+.action-row { display: flex; gap: 14rpx; margin-top: 16rpx; }
+.action-row .btn { flex: 1; }

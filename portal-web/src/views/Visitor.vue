@@ -15,6 +15,7 @@
           <h2>{{ t('visitor.success') }}</h2>
           <p class="muted">{{ t('visitor.successTip') }}</p>
           <dl class="result">
+            <div><dt>{{ t('visitor.bookingNo') }}</dt><dd>#{{ result.id }}</dd></div>
             <div><dt>{{ t('visitor.name') }}</dt><dd>{{ result.visitorName }}</dd></div>
             <div><dt>{{ t('visitor.phone') }}</dt><dd>{{ result.phoneMask || '-' }}</dd></div>
             <div><dt>{{ t('visitor.idCard') }}</dt><dd>{{ result.idCardMask || '-' }}</dd></div>
@@ -22,8 +23,10 @@
             <div><dt>{{ t('visitor.status') }}</dt><dd>{{ statusLabel(result.status) }}</dd></div>
           </dl>
           <p class="mask-note">{{ t('visitor.maskNote') }}</p>
+          <p class="mask-note">{{ t('visitor.bookingNoTip') }}</p>
           <div class="success-actions">
-            <button class="btn primary" @click="reset">{{ t('visitor.again') }}</button>
+            <router-link :to="queryLink" class="btn primary">{{ t('visitor.queryNow') }}</router-link>
+            <button class="btn ghost" @click="reset">{{ t('visitor.again') }}</button>
             <router-link :to="base" class="btn ghost">{{ t('nav.home') }}</router-link>
           </div>
         </div>
@@ -45,7 +48,13 @@
             </label>
             <label class="field">
               <span>{{ t('visitor.visitee') }}</span>
-              <input v-model.trim="form.visitUserName" maxlength="30" :placeholder="locale.startsWith('en') ? 'Host name' : '被访人姓名'" />
+              <select v-model="form.visitUserId">
+                <option value="">{{ t('visitor.visiteeNone') }}</option>
+                <option v-for="person in visitees" :key="person.id" :value="person.id">
+                  {{ person.name }}{{ person.dept ? ' · ' + person.dept : '' }}
+                </option>
+              </select>
+              <small class="hint">{{ t('visitor.visiteeHint') }}</small>
             </label>
             <label class="field">
               <span>{{ t('visitor.reason') }} <em>*</em></span>
@@ -96,6 +105,7 @@
           <h3>{{ locale.startsWith('en') ? 'Notice' : '温馨提示' }}</h3>
           <p>{{ locale.startsWith('en') ? 'ID numbers are encrypted at rest and only masked values are shown. Please arrive within your booked time.' : '身份证号加密存储、页面仅展示脱敏信息；请按预约时段到校，配合门卫核验。' }}</p>
           <p v-if="store.state.tenant?.dutyPhone" class="duty">{{ t('common.contact') }}：{{ store.state.tenant.dutyPhone }}</p>
+          <router-link :to="`${base}/visitor-query`" class="query-link">{{ t('visitor.query') }} →</router-link>
         </div>
       </aside>
     </div>
@@ -103,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import api from '@/api'
@@ -118,10 +128,13 @@ const submitting = ref(false)
 const success = ref(false)
 const error = ref('')
 const result = ref<any>({})
+const visitees = ref<any[]>([])
 const form = reactive<any>({
   visitorName: '', phone: '', idCard: '', reason: '', visitTime: '', leaveTime: '',
-  accompanyCount: 0, plateNo: '', visitUserName: '', remark: ''
+  accompanyCount: 0, plateNo: '', visitUserId: '', remark: ''
 })
+const queryLink = computed(() => `/${route.params.code || 'DEMO'}/visitor-query?id=${result.value.id || ''}`)
+const selectedHost = computed(() => visitees.value.find((person) => person.id === form.visitUserId))
 
 const reasons = computed(() => locale.value.startsWith('en')
   ? ['Business visit', 'Parent visit', 'Academic exchange', 'Interview', 'Delivery', 'Other']
@@ -154,7 +167,9 @@ function statusLabel(status: string) {
   const map: Record<string, string> = {
     PENDING: locale.value.startsWith('en') ? 'Pending approval' : '待审批',
     APPROVED: locale.value.startsWith('en') ? 'Approved' : '已通过',
-    REJECTED: locale.value.startsWith('en') ? 'Rejected' : '已驳回'
+    REJECTED: locale.value.startsWith('en') ? 'Rejected' : '已驳回',
+    EXPIRED: locale.value.startsWith('en') ? 'Expired' : '已过期',
+    CANCELLED: locale.value.startsWith('en') ? 'Cancelled' : '已取消'
   }
   return map[status] || status
 }
@@ -180,7 +195,8 @@ async function submit() {
       leaveTime: form.leaveTime ? toBackendTime(form.leaveTime) : undefined,
       accompanyCount: Number(form.accompanyCount || 0),
       plateNo: form.plateNo || undefined,
-      visitUserName: form.visitUserName || undefined,
+      visitUserId: form.visitUserId || undefined,
+      visitUserName: selectedHost.value?.name || undefined,
       remark: form.remark || undefined,
       source: 'H5'
     }
@@ -203,9 +219,19 @@ function reset() {
   result.value = {}
   Object.assign(form, {
     visitorName: '', phone: '', idCard: '', reason: '', visitTime: '', leaveTime: '',
-    accompanyCount: 0, plateNo: '', visitUserName: '', remark: ''
+    accompanyCount: 0, plateNo: '', visitUserId: '', remark: ''
   })
 }
+
+async function loadVisitees() {
+  try {
+    visitees.value = (await api.get(`/tenant/${route.params.code}/visitees`)) as any
+  } catch (e) {
+    visitees.value = []
+  }
+}
+
+onMounted(loadVisitees)
 </script>
 
 <style scoped>
@@ -241,6 +267,7 @@ function reset() {
 .steps strong { font-size: 13px; }
 .notice p { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0 0 8px; }
 .duty { color: var(--blue) !important; font-weight: 600; }
+.query-link { display: inline-block; margin-top: 6px; color: var(--blue); font-size: 13px; font-weight: 600; }
 .success { text-align: center; padding: 10px 4px; }
 .success-icon {
   width: 62px; height: 62px; border-radius: 50%; background: #e6f8f0; color: #0f9d63;

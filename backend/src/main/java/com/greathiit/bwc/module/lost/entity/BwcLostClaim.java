@@ -18,6 +18,8 @@ public class BwcLostClaim extends BaseEntity {
 
     private Long itemId;
 
+    private Long claimantId;
+
     private String claimant;
 
     private String phoneMask;

@@ -1,8 +1,8 @@
 .search-card { padding: 20rpx 22rpx; }
 .search-row { display: flex; align-items: center; gap: 14rpx; }
 .search-row input {
-  flex: 1; background: #f6f9fe; border: 1rpx solid #dbe5f2; border-radius: 999rpx;
-  padding: 16rpx 24rpx; font-size: 26rpx;
+  flex: 1; height: 72rpx; line-height: 72rpx; background: #f6f9fe; border: 1rpx solid #dbe5f2; border-radius: 999rpx;
+  padding: 0 24rpx; font-size: 26rpx; box-sizing: border-box;
 }
 .chips { white-space: nowrap; margin-top: 16rpx; }
 .chip {
@@ -21,3 +21,7 @@
   color: #2563eb; font-size: 24rpx; font-weight: 700;
 }
 .lost-name { font-size: 30rpx; font-weight: 700; color: #0f2a52; }
+.card-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 12rpx;
+  margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx dashed #eef3fa;
+}

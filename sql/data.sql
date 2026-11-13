@@ -84,6 +84,7 @@ INSERT INTO `sys_menu` (`id`,`tenant_id`,`platform`,`parent_id`,`name`,`name_en`
 (29,0,'admin',20,'消息模板','Message Templates','/system/message-templates','Message',9,'MENU','wechat:write',1,NOW(),NOW()),
 (30,0,'admin',20,'审计日志','Audit Logs','/system/audit','Notebook',10,'MENU','audit:read',1,NOW(),NOW()),
 (40,0,'admin',0,'门禁访客','Visitors','/visitor','Postcard',40,'MENU','visitor:read',1,NOW(),NOW()),
+(48,0,'admin',40,'门岗核验','Gate Check','/visitor/gate','Camera',0,'MENU','visitor:write',1,NOW(),NOW()),
 (41,0,'admin',40,'访客预约','Appointments','/visitor/appointments','Calendar',1,'MENU','visitor:write',1,NOW(),NOW()),
 (42,0,'admin',40,'通行记录','Visit Records','/visitor/records','Switch',2,'MENU','visitor:read',1,NOW(),NOW()),
 (43,0,'admin',40,'临时入校','Temp Entry','/visitor/temp','Position',3,'MENU','visitor:write',1,NOW(),NOW()),
@@ -163,9 +164,11 @@ INSERT INTO `sys_menu` (`tenant_id`,`platform`,`parent_id`,`name`,`name_en`,`pat
 INSERT INTO `sys_menu` (`tenant_id`,`platform`,`parent_id`,`name`,`name_en`,`path`,`icon`,`sort`,`menu_type`,`visible`,`create_time`,`update_time`) VALUES
 (0,'h5',0,'首页','Home','/','',1,'MENU',1,NOW(),NOW()),
 (0,'h5',0,'访客预约','Visitor Booking','/visitor','',2,'MENU',1,NOW(),NOW()),
-(0,'h5',0,'失物招领','Lost & Found','/lost','',3,'MENU',1,NOW(),NOW()),
-(0,'h5',0,'安全资讯','News','/news','',4,'MENU',1,NOW(),NOW()),
-(0,'h5',0,'学校门户','School','/school','',5,'MENU',1,NOW(),NOW());
+(0,'h5',0,'车辆预约','Vehicle Booking','/vehicle','',3,'MENU',1,NOW(),NOW()),
+(0,'h5',0,'安全上报','Safety Report','/safety','',4,'MENU',1,NOW(),NOW()),
+(0,'h5',0,'失物招领','Lost & Found','/lost','',5,'MENU',1,NOW(),NOW()),
+(0,'h5',0,'安全资讯','News','/news','',6,'MENU',1,NOW(),NOW()),
+(0,'h5',0,'学校门户','School','/school','',7,'MENU',1,NOW(),NOW());
 
 -- App 导航
 INSERT INTO `sys_menu` (`tenant_id`,`platform`,`parent_id`,`name`,`name_en`,`path`,`icon`,`sort`,`menu_type`,`visible`,`create_time`,`update_time`) VALUES

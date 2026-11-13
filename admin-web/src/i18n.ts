@@ -15,7 +15,7 @@ const zh = {
   login: {
     title: '校园保卫安防管理平台', subtitle: 'SaaS 多租户 · 门禁访客 · 消防隐患 · 巡逻防控',
     username: '账号', password: '密码', tenantCode: '学校编码（可选）', platform: '平台端',
-    tenant: '学校端', submit: '登 录', tip: '默认密码 Admin@123'
+    tenant: '学校端', submit: '登 录', tip: '默认密码 Admin{\'@\'}123'
   }
 }
 
@@ -34,7 +34,7 @@ const en = {
   login: {
     title: 'Campus Security Platform', subtitle: 'Multi-tenant SaaS · Access · Fire Safety · Patrol',
     username: 'Username', password: 'Password', tenantCode: 'School code (optional)', platform: 'Platform',
-    tenant: 'School', submit: 'Sign in', tip: 'Default password Admin@123'
+    tenant: 'School', submit: 'Sign in', tip: 'Default password Admin{\'@\'}123'
   }
 }
 

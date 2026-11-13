@@ -1069,6 +1069,7 @@ CREATE TABLE `bwc_lost_claim` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `tenant_id` BIGINT NOT NULL DEFAULT 0,
   `item_id` BIGINT NOT NULL,
+  `claimant_id` BIGINT NULL,
   `claimant` VARCHAR(64) NOT NULL,
   `phone_mask` VARCHAR(32) NULL,
   `id_card_mask` VARCHAR(32) NULL,

@@ -86,7 +86,6 @@ async function load() {
   loading.value = true
   try {
     rows.value = (await http.get('/users/roles')) as any
-    menuTree.value = (await http.get('/system/menus/tree', { params: { platform: 'admin' } })) as any
   } finally {
     loading.value = false
   }
@@ -128,6 +127,9 @@ async function remove(row: any) {
 async function openMenus(row: any) {
   currentRole.value = row
   checkedMenus.value = (await http.get(`/users/roles/${row.id}/menus`)) as any
+  if (!menuTree.value.length) {
+    menuTree.value = (await http.get('/users/roles/menu-options')) as any
+  }
   menuVisible.value = true
   await nextTick()
   treeRef.value?.setCheckedKeys(checkedMenus.value)

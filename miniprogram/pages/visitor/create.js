@@ -71,7 +71,8 @@ Page({
           leaveTime,
           accompanyCount: Number(f.accompanyCount || 0),
           plateNo: f.plateNo || undefined,
-          visitUserName: f.visitUserName || undefined,
+          visitUserId: (app.globalData.user && app.globalData.user.id) || undefined,
+          visitUserName: f.visitUserName || (app.globalData.user && app.globalData.user.realName) || undefined,
           remark: f.remark || undefined,
           source: 'MINI'
         }

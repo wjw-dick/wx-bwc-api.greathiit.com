@@ -1,0 +1,44 @@
+<view class="container">
+  <view class="card">
+    <view class="field">
+      <view class="label">巡逻路线</view>
+      <picker mode="selector" range="{{routes}}" range-key="name" value="{{routeIndex}}" bindchange="onRoute">
+        <view class="picker-value">{{routeName || '请选择路线'}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <view class="label">选择点位</view>
+      <view wx:if="{{!points.length}}" class="empty" style="padding:20rpx 0;">该路线暂无点位</view>
+      <view class="point-grid">
+        <view wx:for="{{points}}" wx:key="id" class="point {{selectedPointId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}" bindtap="selectPoint">
+          {{item.name}}
+          <text class="time">{{item.timeWindowStart || '--:--'}} ~ {{item.timeWindowEnd || '--:--'}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="label">异常说明</view>
+      <textarea value="{{remark}}" bindinput="onRemark" maxlength="200" placeholder="选填，填写后将标记为异常打卡" />
+    </view>
+    <view wx:if="{{error}}" class="error-text">{{error}}</view>
+    <view class="row gap">
+      <button class="btn block" bindtap="checkinSelected" loading="{{submitting}}">选中点位打卡</button>
+      <button class="btn block ghost" bindtap="scanPoint">扫点位码</button>
+    </view>
+  </view>
+
+  <view class="section-title">我的巡逻记录</view>
+  <view wx:if="{{!records.length}}" class="empty">暂无巡逻记录</view>
+  <view wx:for="{{records}}" wx:key="id" class="list-item">
+    <view class="top">
+      <h3>{{item.pointId ? '点位 #' + item.pointId : '巡逻打卡'}}</h3>
+      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+    <view class="meta-line">
+      <view>{{item.checkTimeText}}</view>
+      <view>{{item.method || 'GPS'}}</view>
+    </view>
+    <view wx:if="{{item.abnormalDesc}}" class="muted" style="margin-top:8rpx;color:#be123c;">异常：{{item.abnormalDesc}}</view>
+  </view>
+</view>

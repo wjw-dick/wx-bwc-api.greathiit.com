@@ -97,6 +97,9 @@ public class DeviceService {
         if (repair == null) {
             throw BizException.notFound("报修单不存在");
         }
+        if ("DONE".equals(repair.getStatus())) {
+            throw new BizException("报修单已完成，请勿重复操作");
+        }
         repair.setStatus("DONE");
         repair.setFinishTime(LocalDateTime.now());
         repair.setResult(result);

@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="card search-card">
+    <view class="search-row">
+      <input value="{{keyword}}" bindinput="onInput" placeholder="输入车牌号筛选" confirm-type="search" bindconfirm="onSearch" />
+      <button class="btn small" bindtap="onSearch">查询</button>
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="error-text">{{error}}</view>
+
+  <view class="section-title">在场车辆（{{inPark.length}}）</view>
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{!inPark.length}}" class="empty">当前无在场车辆</view>
+  <view wx:else class="card" style="padding:8rpx 24rpx;">
+    <view wx:for="{{inPark}}" wx:key="plateNo" class="log-row">
+      <view>
+        <view class="plate">{{item.plateNo}}</view>
+        <view class="muted" style="margin-top:4rpx;">{{item.cameraName || item.cameraId || '校门'}} · {{item.triggerTime}}</view>
+      </view>
+      <view class="tag ok">在校</view>
+    </view>
+  </view>
+
+  <view class="section-title" style="margin-top:28rpx;">进出记录</view>
+  <view wx:if="{{!logs.length && !loading}}" class="empty">暂无进出记录</view>
+  <view wx:for="{{logs}}" wx:key="id" class="list-item">
+    <view class="top">
+      <view class="plate">{{item.plateNo}}</view>
+      <view class="tag {{item.inOut === 'in' ? 'ok' : 'muted'}}">{{item.inOut === 'in' ? '入校' : '离校'}}</view>
+    </view>
+    <view class="meta-line">
+      <text>{{item.cameraName || item.cameraId || '校门'}}</text>
+      <text>{{item.triggerTime}}</text>
+      <text wx:if="{{item.isWhitelist === 1}}">白名单</text>
+    </view>
+  </view>
+</view>

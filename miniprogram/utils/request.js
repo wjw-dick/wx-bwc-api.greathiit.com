@@ -62,7 +62,7 @@ function upload(filePath, bizType) {
   const token = (app && app.globalData && app.globalData.token) || wx.getStorageSync('bwc_token')
   return new Promise((resolve, reject) => {
     wx.uploadFile({
-      url: `${baseUrl()}/system/upload`,
+      url: `${baseUrl()}/system/upload/user`,
       filePath,
       name: 'file',
       formData: { bizType: bizType || 'miniprogram' },

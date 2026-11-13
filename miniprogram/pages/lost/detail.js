@@ -13,6 +13,7 @@ Page({
     loading: true,
     loggedIn: false,
     claimVisible: false,
+    autoClaim: false,
     claimForm: { claimant: '', phone: '', idCard: '', remark: '' },
     idCardMask: '',
     submitting: false,
@@ -20,13 +21,14 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ id: options.id, loggedIn: app.isLoggedIn() })
+    this.setData({
+      id: options.id,
+      loggedIn: app.isLoggedIn(),
+      autoClaim: options.claim === '1'
+    })
     const user = app.globalData.user
-    if (user) {
-      this.setData({
-        'claimForm.claimant': user.realName || '',
-        'claimForm.phone': (user.phoneMask || '').replace(/\*/g, '')
-      })
+    if (user && user.realName) {
+      this.setData({ 'claimForm.claimant': user.realName })
     }
     this.load()
   },
@@ -52,6 +54,9 @@ Page({
           photos: item.photos ? String(item.photos).split(',') : []
         })
       })
+      if (this.data.autoClaim) {
+        this.openClaim()
+      }
     } catch (e) {
       this.setData({ item: null })
       wx.showToast({ title: e.message || '加载失败', icon: 'none' })
@@ -91,21 +96,21 @@ Page({
     if (f.idCard && !/^\d{17}[\dX]$/.test(f.idCard)) return this.setData({ error: '请输入正确的身份证号' })
     this.setData({ submitting: true, error: '' })
     try {
-      await request({
-        url: '/lost/claims',
+      const data = await request({
+        url: '/lost/claims/self',
         method: 'POST',
         data: {
           itemId: Number(this.data.id),
           claimant: f.claimant,
-          phoneMask: util.mask(f.phone),
-          idCardMask: f.idCard ? util.mask(f.idCard) : undefined,
+          phone: f.phone,
+          idCard: f.idCard || undefined,
           remark: f.remark || undefined
         }
       })
       this.setData({ claimVisible: false })
       wx.showModal({
         title: '认领申请已提交',
-        content: '请携带有效证件到保卫处失物招领点核验领取。',
+        content: `认领编号 #${data.id}，请携带有效证件到保卫处核验领取。`,
         showCancel: false,
         success: () => wx.switchTab({ url: '/pages/lost/index' })
       })

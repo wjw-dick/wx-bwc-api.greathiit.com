@@ -46,6 +46,10 @@
         <input value="{{form.finder}}" data-field="finder" bindinput="onInput" maxlength="30" placeholder="选填，可匿名" />
       </view>
       <view class="field">
+        <view class="label">拾获人手机号</view>
+        <input value="{{form.phone}}" data-field="phone" bindinput="onInput" type="number" maxlength="11" placeholder="选填，便于失主联系" />
+      </view>
+      <view class="field">
         <view class="label">保管地点</view>
         <input value="{{form.storageLocation}}" data-field="storageLocation" bindinput="onInput" maxlength="80" placeholder="选填，如保卫处值班室" />
       </view>

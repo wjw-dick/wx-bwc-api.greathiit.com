@@ -12,7 +12,8 @@
         <view class="result-row"><text>审批状态</text><text>待审批</text></view>
       </view>
     </view>
-    <button class="btn block" bindtap="goBack">返回</button>
+    <button class="btn block" bindtap="goQuery">查询预约进度</button>
+    <button class="btn block ghost" style="margin-top:18rpx;" bindtap="goBack">返回</button>
   </view>
 
   <view wx:else>
@@ -65,6 +66,7 @@
       </view>
       <view wx:if="{{error}}" class="error-text">{{error}}</view>
       <button class="btn block" loading="{{submitting}}" bindtap="submit">提交预约</button>
+      <view class="muted" style="text-align:center;margin-top:18rpx;" bindtap="goQuery">已有预约？查询进度 ›</view>
     </view>
   </view>
 </view>

@@ -1,0 +1,62 @@
+<view class="container">
+  <view class="tabs">
+    <view class="tab {{tab === 'report' ? 'active' : ''}}" data-tab="report" bindtap="switchTab">事件上报</view>
+    <view class="tab {{tab === 'list' ? 'active' : ''}}" data-tab="list" bindtap="switchTab">事件列表</view>
+  </view>
+
+  <block wx:if="{{tab === 'report'}}">
+    <view class="card">
+      <view class="field">
+        <view class="label">事件类型</view>
+        <picker mode="selector" range="{{types}}" value="{{form.typeIndex}}" bindchange="onType">
+          <view class="picker-value">{{types[form.typeIndex]}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">紧急程度</view>
+        <picker mode="selector" range="{{urgencyLabels}}" value="{{form.urgencyIndex}}" bindchange="onUrgency">
+          <view class="picker-value">{{urgencyLabels[form.urgencyIndex]}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="label">事发位置<text class="required">*</text></view>
+        <input value="{{form.location}}" data-field="location" bindinput="onInput" maxlength="80" placeholder="如：教学楼A座一层" />
+      </view>
+      <view class="field">
+        <view class="label">现场描述<text class="required">*</text></view>
+        <textarea value="{{form.description}}" data-field="description" bindinput="onInput" maxlength="500" placeholder="请描述事件经过、涉及人员等" />
+      </view>
+      <view class="field">
+        <view class="label">现场照片</view>
+        <view class="photo-row">
+          <image wx:for="{{form.photos ? form.photos.split(',') : []}}" wx:key="*this" src="{{item}}" mode="aspectFill" />
+          <view class="photo-add" bindtap="choosePhoto">+</view>
+        </view>
+      </view>
+      <view wx:if="{{error}}" class="error-text">{{error}}</view>
+      <button class="btn block" bindtap="submit" loading="{{submitting}}">提交上报</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view wx:if="{{loading}}" class="loading">加载中…</view>
+    <view wx:elif="{{!list.length}}" class="empty">暂无事件记录</view>
+    <view wx:for="{{list}}" wx:key="id" class="list-item">
+      <view class="top">
+        <h3>{{item.eventType}} · {{item.location}}</h3>
+        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="meta-line">
+        <view>{{item.eventNo}}</view>
+        <view>{{item.createTimeText}}</view>
+        <view>{{item.urgency === 'CRITICAL' ? '重大' : item.urgency === 'URGENT' ? '紧急' : '一般'}}</view>
+      </view>
+      <view class="muted" style="margin-top:8rpx;">{{item.description}}</view>
+      <view wx:if="{{item.handleResult}}" class="muted" style="margin-top:8rpx;color:#0f9d63;">处置：{{item.handleResult}}</view>
+      <view class="action-row" wx:if="{{item.status !== 'CLOSED'}}">
+        <button class="btn small ghost" data-id="{{item.id}}" bindtap="handle">记录处置</button>
+        <button class="btn small" data-id="{{item.id}}" bindtap="close">结案</button>
+      </view>
+    </view>
+  </block>
+</view>

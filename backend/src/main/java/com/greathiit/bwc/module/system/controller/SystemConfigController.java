@@ -584,7 +584,6 @@ public class SystemConfigController {
     }
 
     @GetMapping("/messages")
-    @RequirePermission("system:read")
     public R<IPage<SysMessage>> messages(@RequestParam(defaultValue = "1") long page,
                                           @RequestParam(defaultValue = "10") long size,
                                           @RequestParam(required = false) Integer readFlag) {
@@ -599,11 +598,13 @@ public class SystemConfigController {
     }
 
     @PostMapping("/messages/{id}/read")
-    @RequirePermission("system:write")
     public R<Void> readMessage(@PathVariable Long id) {
         SysMessage message = messageMapper.selectById(id);
         if (message == null) {
             throw BizException.notFound("消息不存在");
+        }
+        if (message.getUserId() != null && !message.getUserId().equals(AuthContext.userId())) {
+            throw BizException.forbidden("无权操作他人消息");
         }
         message.setReadFlag(1);
         messageMapper.updateById(message);
@@ -727,6 +728,16 @@ public class SystemConfigController {
         result.put("attachmentId", attachment.getId());
         auditService.record("storage", "UPLOAD", attachment.getFileName(), "上传文件：" + bizType);
         return R.ok(result);
+    }
+
+    /**
+     * 登录用户通用上传：事件/隐患/巡检/报修等一线取证，不要求系统管理权限。
+     */
+    @PostMapping("/upload/user")
+    public R<Map<String, Object>> userUpload(@RequestParam("file") MultipartFile file,
+                                              @RequestParam(required = false) String bizType,
+                                              @RequestParam(required = false) Long bizId) {
+        return upload(file, bizType, bizId);
     }
 
     @GetMapping("/attachments")

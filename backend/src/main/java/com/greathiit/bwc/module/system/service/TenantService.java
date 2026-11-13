@@ -11,6 +11,8 @@ import com.greathiit.bwc.module.system.mapper.SysLanguageMapper;
 import com.greathiit.bwc.module.system.mapper.SysMenuMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantConfigMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantMapper;
+import com.greathiit.bwc.security.LoginUser;
+import com.greathiit.bwc.security.PermissionService;
 import com.greathiit.bwc.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class TenantService {
     private final SysMenuMapper menuMapper;
     private final SysTenantConfigMapper configMapper;
     private final SysLanguageMapper languageMapper;
+    private final PermissionService permissionService;
 
     public SysTenant requireTenant(Long tenantId) {
         SysTenant tenant = tenantMapper.selectById(tenantId);
@@ -58,6 +61,43 @@ public class TenantService {
                 .in(SysMenu::getTenantId, List.of(0L, tenantId))
                 .orderByAsc(SysMenu::getSort));
         return buildTree(menus);
+    }
+
+    /** 按当前用户有效权限过滤菜单树，目录下无可见子项时一并隐藏 */
+    public List<Map<String, Object>> menuTree(String platform, Long tenantId, LoginUser user) {
+        List<SysMenu> menus = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                .eq(SysMenu::getPlatform, platform)
+                .eq(SysMenu::getVisible, 1)
+                .in(SysMenu::getTenantId, List.of(0L, tenantId))
+                .orderByAsc(SysMenu::getSort));
+        List<SysMenu> visible = new ArrayList<>();
+        for (SysMenu menu : menus) {
+            if (permissionService.canSeeMenu(user, menu.getPermission())) {
+                visible.add(menu);
+            }
+        }
+        List<Map<String, Object>> tree = buildTree(visible);
+        pruneEmptyDirs(tree);
+        return tree;
+    }
+
+    /** 角色授权用的菜单目录：含按钮级权限，过滤平台专属路径 */
+    public List<Map<String, Object>> roleMenuTree(Long tenantId) {
+        long tid = tenantId == null ? 0L : tenantId;
+        List<SysMenu> menus = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                .eq(SysMenu::getPlatform, "admin")
+                .in(SysMenu::getTenantId, List.of(0L, tid))
+                .orderByAsc(SysMenu::getSort));
+        List<SysMenu> filtered = new ArrayList<>();
+        for (SysMenu menu : menus) {
+            String path = menu.getPath();
+            if (path != null && (path.equals("/platform") || path.startsWith("/platform/")
+                    || path.equals("/report-center/platform"))) {
+                continue;
+            }
+            filtered.add(menu);
+        }
+        return buildTree(filtered);
     }
 
     public List<SysMenu> menuList(String platform, Long tenantId) {
@@ -88,6 +128,31 @@ public class TenantService {
         }
         roots.sort(Comparator.comparing(o -> ((Integer) o.getOrDefault("sort", 0))));
         return roots;
+    }
+
+    private void pruneEmptyDirs(List<Map<String, Object>> nodes) {
+        if (nodes == null) {
+            return;
+        }
+        java.util.Iterator<Map<String, Object>> it = nodes.iterator();
+        while (it.hasNext()) {
+            Map<String, Object> node = it.next();
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> children = (List<Map<String, Object>>) node.get("children");
+            if (children != null) {
+                pruneEmptyDirs(children);
+                if (children.isEmpty() && (node.get("path") == null || "".equals(node.get("path")))) {
+                    it.remove();
+                    continue;
+                }
+            }
+            Object path = node.get("path");
+            Object childrenRaw = node.get("children");
+            if ((path == null || "".equals(path)) && childrenRaw == null
+                    && (node.get("permission") == null || "".equals(node.get("permission")))) {
+                it.remove();
+            }
+        }
     }
 
     private Map<String, Object> toNode(SysMenu menu) {

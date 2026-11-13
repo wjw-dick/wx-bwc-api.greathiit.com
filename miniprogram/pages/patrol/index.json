@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "巡逻打卡",
+  "enablePullDownRefresh": true,
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于巡逻打卡定位"
+    }
+  }
+}

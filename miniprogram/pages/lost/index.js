@@ -88,13 +88,9 @@ Page({
 
   async loadClaims() {
     try {
-      const data = await request({
-        url: '/lost/claims',
-        params: { page: 1, size: 50 },
-        silent: true
-      })
+      const rows = await request({ url: '/lost/claims/self', silent: true })
       this.setData({
-        claims: (data.records || []).map((item) => Object.assign({}, item, {
+        claims: (rows || []).map((item) => Object.assign({}, item, {
           statusText: util.statusLabel(item.status),
           statusClass: util.statusClass(item.status),
           claimTimeText: util.formatDate(item.claimTime)
@@ -107,6 +103,15 @@ Page({
 
   openDetail(e) {
     wx.navigateTo({ url: `/pages/lost/detail?id=${e.currentTarget.dataset.id}` })
+  },
+
+  goClaim(e) {
+    if (!app.isLoggedIn()) {
+      wx.showToast({ title: '请先登录后认领', icon: 'none' })
+      setTimeout(() => wx.navigateTo({ url: '/pages/login/index' }), 500)
+      return
+    }
+    wx.navigateTo({ url: `/pages/lost/detail?id=${e.currentTarget.dataset.id}&claim=1` })
   },
 
   goReport() {
