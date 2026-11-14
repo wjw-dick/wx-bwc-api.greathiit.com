@@ -8,6 +8,7 @@ App({
     user: null,
     tenant: null,
     menus: [],
+    permissions: [],
     tenantCode: 'DEMO',
     locale: 'zh-CN',
     config
@@ -17,6 +18,7 @@ App({
     this.globalData.token = wx.getStorageSync('bwc_token') || ''
     this.globalData.user = wx.getStorageSync('bwc_user') || null
     this.globalData.tenant = wx.getStorageSync('bwc_tenant') || null
+    this.globalData.permissions = wx.getStorageSync('bwc_permissions') || []
     this.globalData.tenantCode = wx.getStorageSync('bwc_tenant_code') || (this.globalData.tenant && this.globalData.tenant.code) || 'DEMO'
     this.globalData.locale = i18n.getLocale()
     this.loadMenus()
@@ -26,10 +28,12 @@ App({
     this.globalData.token = data.token
     this.globalData.user = data.user
     this.globalData.tenant = data.tenant
+    this.globalData.permissions = data.permissions || []
     this.globalData.tenantCode = (data.tenant && data.tenant.code) || this.globalData.tenantCode
     wx.setStorageSync('bwc_token', data.token)
     wx.setStorageSync('bwc_user', data.user)
     wx.setStorageSync('bwc_tenant', data.tenant)
+    wx.setStorageSync('bwc_permissions', this.globalData.permissions)
     wx.setStorageSync('bwc_tenant_code', this.globalData.tenantCode)
     this.loadMenus()
   },
@@ -38,13 +42,20 @@ App({
     this.globalData.token = ''
     this.globalData.user = null
     this.globalData.tenant = null
+    this.globalData.permissions = []
     wx.removeStorageSync('bwc_token')
     wx.removeStorageSync('bwc_user')
     wx.removeStorageSync('bwc_tenant')
+    wx.removeStorageSync('bwc_permissions')
   },
 
   isLoggedIn() {
     return !!this.globalData.token
+  },
+
+  hasPerm(permission) {
+    const list = this.globalData.permissions || []
+    return list.indexOf('*') >= 0 || list.indexOf(permission) >= 0
   },
 
   async loadMenus() {

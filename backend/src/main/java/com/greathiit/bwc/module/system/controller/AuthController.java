@@ -43,7 +43,7 @@ public class AuthController {
     public R<Map<String, Object>> wxBind(@RequestBody Map<String, String> body) {
         rateLimitService.check("wx-bind", 10, Duration.ofMinutes(1));
         return R.ok(authService.wxBind(body.get("username"), body.get("password"),
-                body.get("code"), body.get("appType")));
+                body.get("code"), body.get("appType"), body.get("tenantCode")));
     }
 
     @GetMapping("/me")

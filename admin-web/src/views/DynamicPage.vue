@@ -12,9 +12,11 @@ import { computed, defineAsyncComponent, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { menuResource, specialViews } from '@/config/resources'
 import ResourceList from '@/views/ResourceList.vue'
+import { useAuthStore } from '@/store/auth'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const specialComponents: Record<string, Component> = {
   Dashboard: defineAsyncComponent(() => import('@/views/Dashboard.vue')),
@@ -49,9 +51,11 @@ const extraSpecial: Record<string, string> = {
 }
 
 const path = computed(() => route.path)
+const allowed = computed(() => path.value === '/dashboard' || auth.menuPaths.includes(path.value))
 const specialName = computed(() => specialViews[path.value] || extraSpecial[path.value])
 const resource = computed(() => menuResource[path.value] || '')
 const current = computed<Component | null>(() => {
+  if (!allowed.value) return null
   if (specialName.value && specialComponents[specialName.value]) {
     return specialComponents[specialName.value]
   }

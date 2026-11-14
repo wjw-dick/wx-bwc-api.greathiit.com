@@ -56,6 +56,10 @@ public class PermissionService {
             "platform", "tenant", "menu", "param", "i18n", "storage", "wechat", "audit",
             "dict", "system");
 
+    /** 平台运营只读权限：不得管理租户、平台账号、参数、菜单、存储与微信配置 */
+    private static final Set<String> OPERATOR_READ = Set.of(
+            "platform:read", "tenant:read", "audit:read", "dashboard:read");
+
     private final SysRoleMapper roleMapper;
     private final SysRoleMenuMapper roleMenuMapper;
     private final SysMenuMapper menuMapper;
@@ -78,16 +82,18 @@ public class PermissionService {
         boolean write = !"read".equals(action);
 
         if (user.isPlatform()) {
-            if (PLATFORM_MODULES.contains(module)) {
-                return true;
+            if (isSystemRole(user)) {
+                if (!write) {
+                    return true;
+                }
+                // 下钻租户或只读模式下，平台超管同样禁止写操作
+                if (TenantContext.isReadOnly() || TenantContext.getTenantId() != 0L) {
+                    return false;
+                }
+                return PLATFORM_MODULES.contains(module) || PLATFORM_WRITE.contains(module);
             }
-            if (!write) {
-                return true;
-            }
-            if (TenantContext.isReadOnly() || TenantContext.getTenantId() != 0L) {
-                return false;
-            }
-            return PLATFORM_WRITE.contains(module);
+            // 平台运营：只读，且只能访问租户/看板/审计等获授权范围
+            return !write && OPERATOR_READ.contains(module + ":" + action);
         }
 
         if (PLATFORM_MODULES.contains(module)) {
@@ -118,6 +124,22 @@ public class PermissionService {
             return true;
         }
         return has(user, menuPermission);
+    }
+
+    /** 平台超管返回通配符，平台运营返回只读白名单；租户角色返回真实授权集合 */
+    public Set<String> effectivePermissions(LoginUser user) {
+        if (user == null) {
+            return Set.of();
+        }
+        if (user.isPlatform()) {
+            return isSystemRole(user) ? Set.of("*") : OPERATOR_READ;
+        }
+        return permissionsOf(user);
+    }
+
+    public boolean isSystemRole(LoginUser user) {
+        return user != null && user.isPlatform()
+                && "SYSTEM".equalsIgnoreCase(user.getRoleCode());
     }
 
     public Set<String> permissionsOf(LoginUser user) {
@@ -159,6 +181,16 @@ public class PermissionService {
     public void requirePlatform() {
         LoginUser user = AuthContext.get();
         if (user == null || !user.isPlatform()) {
+            throw BizException.forbidden("仅平台账号可操作");
+        }
+        if (TenantContext.isReadOnly()) {
+            throw BizException.forbidden("下钻租户为只读模式");
+        }
+    }
+
+    /** 高风险平台写操作：仅 system，平台运营也拒绝 */
+    public void requireSystem() {
+        if (!isSystemRole(AuthContext.get())) {
             throw BizException.forbidden("仅平台超级管理员可操作");
         }
         if (TenantContext.isReadOnly()) {

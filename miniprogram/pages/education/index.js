@@ -35,7 +35,7 @@ Page({
     this.setData({ loading: true })
     try {
       const [courses, exams, records] = await Promise.all([
-        request({ url: '/crud/safety-course', params: { page: 1, size: 50, status: 'PUBLISHED' }, silent: true }),
+        request({ url: '/education/courses', params: { page: 1, size: 50 }, silent: true }),
         request({ url: '/education/exams', params: { page: 1, size: 50, status: 'PUBLISHED' }, silent: true }),
         request({ url: '/education/my-records', silent: true })
       ])

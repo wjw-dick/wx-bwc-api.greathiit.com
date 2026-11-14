@@ -22,6 +22,11 @@ public interface SysTenantUserMapper extends BaseMapper<SysTenantUser> {
     @Select("SELECT * FROM sys_tenant_user WHERE username = #{username} AND deleted = 0 ORDER BY id")
     List<SysTenantUser> selectByUsernameIgnoreTenant(@Param("username") String username);
 
+    /** 请求鉴权阶段租户上下文尚未建立，按主键读取账号需绕过租户插件 */
+    @InterceptorIgnore(tenantLine = "true")
+    @Select("SELECT * FROM sys_tenant_user WHERE id = #{id} AND deleted = 0 LIMIT 1")
+    SysTenantUser selectByIdIgnoreTenant(@Param("id") Long id);
+
     @InterceptorIgnore(tenantLine = "true")
     @Select("SELECT * FROM sys_tenant_user WHERE unionid = #{unionid} AND deleted = 0 LIMIT 1")
     SysTenantUser selectByUnionidIgnoreTenant(@Param("unionid") String unionid);

@@ -12,6 +12,8 @@ import com.greathiit.bwc.module.vehicle.mapper.BwcPlateLogMapper;
 import com.greathiit.bwc.module.vehicle.mapper.BwcVehicleAppointmentMapper;
 import com.greathiit.bwc.module.vehicle.mapper.BwcVehicleLogMapper;
 import com.greathiit.bwc.module.vehicle.service.VehicleService;
+import com.greathiit.bwc.security.AccessGuard;
+import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +39,7 @@ public class VehicleController {
     private final BwcVehicleAppointmentMapper appointmentMapper;
     private final BwcVehicleLogMapper vehicleLogMapper;
     private final BwcPlateLogMapper plateLogMapper;
+    private final AccessGuard accessGuard;
 
     @GetMapping("/vehicles")
     @RequirePermission("vehicle:read")
@@ -44,16 +47,20 @@ public class VehicleController {
                                          @RequestParam(defaultValue = "10") long size,
                                          @RequestParam(required = false) String keyword,
                                          @RequestParam(required = false) String authStatus) {
+        accessGuard.requireRead();
         return R.ok(vehicleService.pageVehicle(page, size, keyword, authStatus));
     }
 
     @PostMapping("/register")
+    @RequirePermission("vehicle:write")
     public R<BwcVehicle> register(@RequestBody Map<String, String> body) {
+        accessGuard.requireSelfService();
         return R.ok(vehicleService.registerVehicle(body));
     }
 
     @GetMapping("/my")
     public R<List<BwcVehicle>> myVehicles() {
+        accessGuard.requireSelfService();
         return R.ok(vehicleService.myVehicles());
     }
 
@@ -61,6 +68,7 @@ public class VehicleController {
     @RequirePermission("vehicle:write")
     public R<BwcVehicle> approveRegistration(@PathVariable Long id,
                                              @RequestBody(required = false) Map<String, Object> body) {
+        accessGuard.requireManager();
         Map<String, Object> data = body == null ? Map.of() : body;
         boolean approved = Boolean.parseBoolean(String.valueOf(data.getOrDefault("approved", true)));
         String remark = data.get("remark") == null ? null : String.valueOf(data.get("remark"));
@@ -70,12 +78,14 @@ public class VehicleController {
     @PostMapping("/vehicles/{id}/issue")
     @RequirePermission("vehicle:write")
     public R<BwcVehicle> issue(@PathVariable Long id) {
+        accessGuard.requireManager();
         return R.ok(vehicleService.issueFixed(id));
     }
 
     @PostMapping("/vehicles/{id}/remove")
     @RequirePermission("vehicle:write")
     public R<BwcVehicle> remove(@PathVariable Long id) {
+        accessGuard.requireManager();
         return R.ok(vehicleService.removeFixed(id));
     }
 
@@ -86,6 +96,11 @@ public class VehicleController {
                                                         @RequestParam(required = false) String status,
                                                         @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BwcVehicleAppointment> wrapper = new LambdaQueryWrapper<>();
+        if (accessGuard.isSelfRole()) {
+            wrapper.eq(BwcVehicleAppointment::getOwnerId, AuthContext.userId());
+        } else {
+            accessGuard.requireRead();
+        }
         if (status != null && !status.isBlank()) {
             wrapper.eq(BwcVehicleAppointment::getStatus, status);
         }
@@ -100,8 +115,16 @@ public class VehicleController {
     @PostMapping("/appointments")
     @RequirePermission("vehicle:write")
     public R<BwcVehicleAppointment> createAppointment(@RequestBody BwcVehicleAppointment body) {
+        accessGuard.requireSelfService();
+        body.setId(null);
         body.setStatus("PENDING");
         body.setAuthStatus("NONE");
+        body.setApproveBy(null);
+        body.setApproveTime(null);
+        body.setOwnerId(AuthContext.userId());
+        if (body.getVisitorName() == null || body.getVisitorName().isBlank()) {
+            body.setVisitorName(AuthContext.get() == null ? null : AuthContext.get().getRealName());
+        }
         appointmentMapper.insert(body);
         return R.ok(body);
     }
@@ -110,6 +133,7 @@ public class VehicleController {
     @RequirePermission("vehicle:write")
     public R<BwcVehicleAppointment> approve(@PathVariable Long id,
                                             @RequestBody Map<String, Object> body) {
+        accessGuard.requireManager();
         boolean approved = Boolean.parseBoolean(String.valueOf(body.getOrDefault("approved", false)));
         return R.ok(vehicleService.approveAppointment(id, approved,
                 body.get("remark") == null ? null : String.valueOf(body.get("remark"))));
@@ -118,16 +142,20 @@ public class VehicleController {
     @PostMapping("/appointments/{id}/retry")
     @RequirePermission("vehicle:write")
     public R<BwcVehicleAppointment> retry(@PathVariable Long id) {
+        accessGuard.requireManager();
         return R.ok(vehicleService.retryAppointment(id));
     }
 
     @PostMapping("/violations/report")
+    @RequirePermission("vehicle:write")
     public R<com.greathiit.bwc.module.vehicle.entity.BwcViolation> reportViolation(@RequestBody Map<String, String> body) {
+        accessGuard.requireSelfService();
         return R.ok(vehicleService.reportViolation(body));
     }
 
     @GetMapping("/violations/my")
     public R<List<com.greathiit.bwc.module.vehicle.entity.BwcViolation>> myViolations() {
+        accessGuard.requireSelfService();
         return R.ok(vehicleService.myViolations());
     }
 
@@ -135,6 +163,7 @@ public class VehicleController {
     @RequirePermission("vehicle:write")
     public R<com.greathiit.bwc.module.vehicle.entity.BwcViolation> handleViolation(@PathVariable Long id,
                                                                                    @RequestBody Map<String, String> body) {
+        accessGuard.requireManager();
         return R.ok(vehicleService.handleViolation(id, body.get("result")));
     }
 
@@ -144,6 +173,7 @@ public class VehicleController {
                                         @RequestParam(defaultValue = "10") long size,
                                         @RequestParam(required = false) String plateNo,
                                         @RequestParam(required = false) String inOut) {
+        accessGuard.requireRead();
         LambdaQueryWrapper<BwcVehicleLog> wrapper = new LambdaQueryWrapper<>();
         if (plateNo != null && !plateNo.isBlank()) {
             wrapper.like(BwcVehicleLog::getPlateNo, plateNo);
@@ -158,6 +188,7 @@ public class VehicleController {
     @GetMapping("/in-park")
     @RequirePermission("vehicle:read")
     public R<List<BwcPlateLog>> inPark() {
+        accessGuard.requireRead();
         List<BwcPlateLog> list = plateLogMapper.selectList(new LambdaQueryWrapper<BwcPlateLog>()
                 .orderByDesc(BwcPlateLog::getTriggerTime).last("limit 500"));
         Map<String, BwcPlateLog> latest = new java.util.LinkedHashMap<>();
@@ -170,12 +201,14 @@ public class VehicleController {
     @PostMapping("/sync-logs")
     @RequirePermission("vehicle:write")
     public R<Integer> syncLogs() {
+        accessGuard.requireManager();
         return R.ok(vehicleService.syncLogs());
     }
 
     @GetMapping("/stats")
     @RequirePermission("vehicle:read")
     public R<Map<String, Object>> stats() {
+        accessGuard.requireRead();
         long total = vehicleLogMapper.selectCount(null);
         long inCount = vehicleLogMapper.selectCount(
                 new LambdaQueryWrapper<BwcVehicleLog>().eq(BwcVehicleLog::getInOut, "in"));

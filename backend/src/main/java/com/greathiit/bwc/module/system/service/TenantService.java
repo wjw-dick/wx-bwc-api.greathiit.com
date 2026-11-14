@@ -63,6 +63,19 @@ public class TenantService {
         return buildTree(menus);
     }
 
+    /** C 端角色在 PC 后台只保留自助页面，避免出现管理列表与审批入口 */
+    private static final java.util.Set<String> SELF_MENU_PATHS = java.util.Set.of(
+            "/dashboard",
+            "/visitor", "/visitor/appointments", "/visitor/late-return",
+            "/vehicle", "/vehicle/appointments",
+            "/lost", "/lost/claims",
+            "/education", "/education/courses", "/education/exams",
+            "/report", "/report/applies", "/report/monitor-access",
+            "/device", "/device/repairs",
+            "/emergency", "/emergency/plans", "/emergency/events",
+            "/logistics", "/logistics/feedback"
+    );
+
     /** 按当前用户有效权限过滤菜单树，目录下无可见子项时一并隐藏 */
     public List<Map<String, Object>> menuTree(String platform, Long tenantId, LoginUser user) {
         List<SysMenu> menus = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
@@ -70,9 +83,34 @@ public class TenantService {
                 .eq(SysMenu::getVisible, 1)
                 .in(SysMenu::getTenantId, List.of(0L, tenantId))
                 .orderByAsc(SysMenu::getSort));
+        boolean selfRole = user != null && !user.isPlatform()
+                && java.util.Set.of("STAFF", "STUDENT", "VISITEE").contains(user.getRoleCode());
+        java.util.Map<Long, SysMenu> byId = new java.util.HashMap<>();
+        menus.forEach(menu -> byId.put(menu.getId(), menu));
+        java.util.Set<Long> allowedIds = new java.util.HashSet<>();
+        for (SysMenu menu : menus) {
+            String path = menu.getPath();
+            // 平台专属菜单即使被误授权给租户角色也不下发
+            if (user != null && !user.isPlatform() && path != null
+                    && (path.equals("/platform") || path.startsWith("/platform/")
+                    || path.equals("/report-center/platform"))) {
+                continue;
+            }
+            if (!permissionService.canSeeMenu(user, menu.getPermission())) {
+                continue;
+            }
+            if (selfRole && (path == null || !SELF_MENU_PATHS.contains(path))) {
+                continue;
+            }
+            allowedIds.add(menu.getId());
+            SysMenu parent = byId.get(menu.getParentId());
+            while (parent != null && allowedIds.add(parent.getId())) {
+                parent = byId.get(parent.getParentId());
+            }
+        }
         List<SysMenu> visible = new ArrayList<>();
         for (SysMenu menu : menus) {
-            if (permissionService.canSeeMenu(user, menu.getPermission())) {
+            if (allowedIds.contains(menu.getId())) {
                 visible.add(menu);
             }
         }

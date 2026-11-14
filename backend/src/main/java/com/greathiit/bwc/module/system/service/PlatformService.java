@@ -5,12 +5,16 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.greathiit.bwc.common.BizException;
 import com.greathiit.bwc.module.system.entity.SysPlatformUser;
+import com.greathiit.bwc.module.system.entity.SysMenu;
 import com.greathiit.bwc.module.system.entity.SysRole;
+import com.greathiit.bwc.module.system.entity.SysRoleMenu;
 import com.greathiit.bwc.module.system.entity.SysTenant;
 import com.greathiit.bwc.module.system.entity.SysTenantConfig;
 import com.greathiit.bwc.module.system.entity.SysTenantUser;
+import com.greathiit.bwc.module.system.mapper.SysMenuMapper;
 import com.greathiit.bwc.module.system.mapper.SysPlatformUserMapper;
 import com.greathiit.bwc.module.system.mapper.SysRoleMapper;
+import com.greathiit.bwc.module.system.mapper.SysRoleMenuMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantConfigMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantMapper;
 import com.greathiit.bwc.module.system.mapper.SysTenantUserMapper;
@@ -36,6 +40,8 @@ public class PlatformService {
     private final SysTenantUserMapper tenantUserMapper;
     private final SysTenantConfigMapper tenantConfigMapper;
     private final SysRoleMapper roleMapper;
+    private final SysRoleMenuMapper roleMenuMapper;
+    private final SysMenuMapper menuMapper;
     private final SysPlatformUserMapper platformUserMapper;
     private final StatsService statsService;
     private final AuditService auditService;
@@ -107,6 +113,7 @@ public class PlatformService {
             entity.setRoleName(role[1]);
             entity.setDataScope(role[2]);
             roleMapper.insert(entity);
+            seedRoleMenus(tenant.getId(), entity);
         }
         SysTenantUser admin = new SysTenantUser();
         admin.setTenantId(tenant.getId());
@@ -126,6 +133,59 @@ public class PlatformService {
         config.setEncrypted(0);
         config.setRemark("学校名称");
         tenantConfigMapper.insert(config);
+    }
+
+    /** 新租户按内置角色策略初始化菜单授权，避免角色无任何权限 */
+    private void seedRoleMenus(Long tenantId, SysRole role) {
+        List<SysMenu> menus = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                .eq(SysMenu::getPlatform, "admin"));
+        for (SysMenu menu : menus) {
+            if (!allowMenu(role.getRoleCode(), menu)) {
+                continue;
+            }
+            SysRoleMenu link = new SysRoleMenu();
+            link.setTenantId(tenantId);
+            link.setRoleId(role.getId());
+            link.setMenuId(menu.getId());
+            roleMenuMapper.insert(link);
+        }
+    }
+
+    private boolean allowMenu(String roleCode, SysMenu menu) {
+        String permission = menu.getPermission();
+        String path = menu.getPath();
+        if (permission == null || permission.isBlank()) {
+            return false;
+        }
+        if (path != null && (path.equals("/platform") || path.startsWith("/platform/")
+                || path.equals("/report-center/platform"))) {
+            return false;
+        }
+        String module = permission.split(":", 2)[0];
+        boolean read = permission.endsWith(":read");
+        boolean business = List.of("visitor", "vehicle", "plate", "fire", "hazard", "event",
+                "patrol", "lost", "device", "emergency", "logistics", "feedback", "report")
+                .contains(module);
+        return switch (roleCode) {
+            case "TENANT_ADMIN" -> !List.of("platform", "tenant", "menu", "param",
+                    "i18n", "storage", "wechat").contains(module);
+            case "CAPTAIN", "GUARD" -> "dashboard".equals(module) || business;
+            case "LEADER" -> "dashboard".equals(module) || (read && business);
+            case "STAFF", "VISITEE", "STUDENT" -> {
+                if ("dashboard".equals(module)) {
+                    yield true;
+                }
+                if ("STUDENT".equals(roleCode) && "visitor:approve".equals(permission)) {
+                    yield false;
+                }
+                if (path != null && path.startsWith("/logistics") && !"/logistics/feedback".equals(path)) {
+                    yield false;
+                }
+                yield List.of("visitor", "vehicle", "lost", "education", "report",
+                        "device", "feedback", "emergency").contains(module);
+            }
+            default -> false;
+        };
     }
 
     @Transactional
@@ -254,8 +314,11 @@ public class PlatformService {
         user.setTenantId(0L);
         user.setPassword(passwordEncoder.encode(rawPassword == null ? "Admin@123" : rawPassword));
         user.setStatus("NORMAL");
-        if (user.getRoleCode() == null) {
+        if (user.getRoleCode() == null || user.getRoleCode().isBlank()) {
             user.setRoleCode("PLATFORM_OPERATOR");
+        }
+        if (!List.of("SYSTEM", "PLATFORM_OPERATOR").contains(user.getRoleCode())) {
+            throw new BizException(400, "平台账号角色只能是 SYSTEM 或 PLATFORM_OPERATOR");
         }
         platformUserMapper.insert(user);
         auditService.record("platform", "USER_CREATE", user.getUsername(), "新增平台账号");

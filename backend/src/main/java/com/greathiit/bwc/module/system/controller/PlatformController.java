@@ -44,21 +44,21 @@ public class PlatformController {
     @PostMapping("/tenants")
     @RequirePermission("tenant:write")
     public R<SysTenant> create(@RequestBody SysTenant tenant) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         return R.ok(platformService.create(tenant));
     }
 
     @PutMapping("/tenants/{id}")
     @RequirePermission("tenant:write")
     public R<SysTenant> update(@PathVariable Long id, @RequestBody SysTenant tenant) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         return R.ok(platformService.update(id, tenant));
     }
 
     @PostMapping("/tenants/{id}/status")
     @RequirePermission("tenant:write")
     public R<SysTenant> status(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         return R.ok(platformService.changeStatus(id, body.get("status")));
     }
 
@@ -66,7 +66,7 @@ public class PlatformController {
     @RequirePermission("tenant:write")
     public R<SysTenant> renew(@PathVariable Long id,
                               @RequestBody(required = false) Map<String, Object> body) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         LocalDateTime expireTime = null;
         Object raw = body == null ? null : body.get("expireTime");
         if (raw != null && !String.valueOf(raw).isBlank()) {
@@ -92,13 +92,14 @@ public class PlatformController {
     @GetMapping("/users")
     @RequirePermission("platform:read")
     public R<List<SysPlatformUser>> users() {
+        permissionService.requireSystem();
         return R.ok(platformService.platformUsers());
     }
 
     @PostMapping("/users")
     @RequirePermission("platform:write")
     public R<SysPlatformUser> createUser(@RequestBody Map<String, Object> body) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         SysPlatformUser user = new SysPlatformUser();
         user.setUsername(body.get("username") == null ? null : String.valueOf(body.get("username")));
         user.setRealName(body.get("realName") == null ? null : String.valueOf(body.get("realName")));

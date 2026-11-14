@@ -70,9 +70,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(R.fail(400, "参数不合法或缺少必填字段"));
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<R<Void>> handleMethodNotSupported(Exception e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(R.fail(405, "请求方法不支持"));
+    }
+
     @ExceptionHandler(Exception.class)
-    public R<Void> handleException(Exception e) {
+    public ResponseEntity<R<Void>> handleException(Exception e) {
         log.error("未处理异常", e);
-        return R.fail(500, "系统繁忙，请稍后重试");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(R.fail(500, "系统繁忙，请稍后重试"));
     }
 }

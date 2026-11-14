@@ -82,6 +82,7 @@ public class EmergencyService {
         event.setId(null);
         event.setOccurTime(event.getOccurTime() == null ? LocalDateTime.now() : event.getOccurTime());
         event.setStatus("REPORTED");
+        event.setReporterId(AuthContext.userId());
         if (event.getReporter() == null) {
             event.setReporter(AuthContext.username());
         }

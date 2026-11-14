@@ -15,6 +15,8 @@ import com.greathiit.bwc.module.emergency.mapper.BwcEmergencyPlanMapper;
 import com.greathiit.bwc.module.emergency.mapper.BwcEmergencySupplyMapper;
 import com.greathiit.bwc.module.emergency.mapper.BwcSupplyRecordMapper;
 import com.greathiit.bwc.module.emergency.service.EmergencyService;
+import com.greathiit.bwc.security.AccessGuard;
+import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +39,7 @@ public class EmergencyController {
     private final BwcSupplyRecordMapper recordMapper;
     private final BwcEmergencyContactMapper contactMapper;
     private final BwcEmergencyEventMapper eventMapper;
+    private final AccessGuard accessGuard;
 
     @GetMapping("/plans")
     @RequirePermission("emergency:read")
@@ -44,6 +47,9 @@ public class EmergencyController {
                                              @RequestParam(defaultValue = "10") long size,
                                              @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BwcEmergencyPlan> wrapper = new LambdaQueryWrapper<>();
+        if (accessGuard.isSelfRole()) {
+            wrapper.eq(BwcEmergencyPlan::getStatus, "PUBLISHED");
+        }
         if (keyword != null && !keyword.isBlank()) {
             wrapper.and(w -> w.like(BwcEmergencyPlan::getTitle, keyword)
                     .or().like(BwcEmergencyPlan::getType, keyword));
@@ -55,6 +61,7 @@ public class EmergencyController {
     @PostMapping("/plans")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyPlan> createPlan(@RequestBody BwcEmergencyPlan plan) {
+        accessGuard.requireManager();
         plan.setId(null);
         if (plan.getStatus() == null) {
             plan.setStatus("DRAFT");
@@ -66,6 +73,7 @@ public class EmergencyController {
     @PutMapping("/plans/{id}")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyPlan> updatePlan(@PathVariable Long id, @RequestBody BwcEmergencyPlan plan) {
+        accessGuard.requireManager();
         plan.setId(id);
         planMapper.updateById(plan);
         return R.ok(planMapper.selectById(id));
@@ -74,6 +82,7 @@ public class EmergencyController {
     @PostMapping("/plans/{id}/publish")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyPlan> publishPlan(@PathVariable Long id) {
+        accessGuard.requireManager();
         BwcEmergencyPlan plan = planMapper.selectById(id);
         if (plan == null) {
             return R.fail(404, "预案不存在");
@@ -90,6 +99,7 @@ public class EmergencyController {
                                                   @RequestParam(defaultValue = "10") long size,
                                                   @RequestParam(required = false) String keyword,
                                                   @RequestParam(required = false) Boolean lowStock) {
+        accessGuard.requireRead();
         LambdaQueryWrapper<BwcEmergencySupply> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isBlank()) {
             wrapper.and(w -> w.like(BwcEmergencySupply::getName, keyword)
@@ -105,6 +115,7 @@ public class EmergencyController {
     @PostMapping("/supplies")
     @RequirePermission("emergency:write")
     public R<BwcEmergencySupply> createSupply(@RequestBody BwcEmergencySupply supply) {
+        accessGuard.requireManager();
         supply.setId(null);
         if (supply.getQuantity() == null) {
             supply.setQuantity(0);
@@ -119,6 +130,7 @@ public class EmergencyController {
     @PutMapping("/supplies/{id}")
     @RequirePermission("emergency:write")
     public R<BwcEmergencySupply> updateSupply(@PathVariable Long id, @RequestBody BwcEmergencySupply supply) {
+        accessGuard.requireManager();
         supply.setId(id);
         supplyMapper.updateById(supply);
         return R.ok(supplyMapper.selectById(id));
@@ -127,6 +139,7 @@ public class EmergencyController {
     @PostMapping("/supplies/{id}/borrow")
     @RequirePermission("emergency:write")
     public R<BwcSupplyRecord> borrow(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        accessGuard.requireManager();
         int quantity = Integer.parseInt(String.valueOf(body.getOrDefault("quantity", 1)));
         String userName = body.get("userName") == null ? null : String.valueOf(body.get("userName"));
         String remark = body.get("remark") == null ? null : String.valueOf(body.get("remark"));
@@ -136,6 +149,7 @@ public class EmergencyController {
     @PostMapping("/supplies/{id}/return")
     @RequirePermission("emergency:write")
     public R<BwcSupplyRecord> giveBack(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        accessGuard.requireManager();
         int quantity = Integer.parseInt(String.valueOf(body.getOrDefault("quantity", 1)));
         String userName = body.get("userName") == null ? null : String.valueOf(body.get("userName"));
         String remark = body.get("remark") == null ? null : String.valueOf(body.get("remark"));
@@ -147,6 +161,7 @@ public class EmergencyController {
     public R<IPage<BwcSupplyRecord>> supplyRecords(@RequestParam(defaultValue = "1") long page,
                                                     @RequestParam(defaultValue = "10") long size,
                                                     @RequestParam(required = false) Long supplyId) {
+        accessGuard.requireRead();
         LambdaQueryWrapper<BwcSupplyRecord> wrapper = new LambdaQueryWrapper<>();
         if (supplyId != null) {
             wrapper.eq(BwcSupplyRecord::getSupplyId, supplyId);
@@ -166,6 +181,7 @@ public class EmergencyController {
     @PostMapping("/contacts")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyContact> createContact(@RequestBody BwcEmergencyContact contact) {
+        accessGuard.requireManager();
         contact.setId(null);
         contactMapper.insert(contact);
         return R.ok(contact);
@@ -174,6 +190,7 @@ public class EmergencyController {
     @PutMapping("/contacts/{id}")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyContact> updateContact(@PathVariable Long id, @RequestBody BwcEmergencyContact contact) {
+        accessGuard.requireManager();
         contact.setId(id);
         contactMapper.updateById(contact);
         return R.ok(contactMapper.selectById(id));
@@ -182,6 +199,7 @@ public class EmergencyController {
     @DeleteMapping("/contacts/{id}")
     @RequirePermission("emergency:write")
     public R<Void> deleteContact(@PathVariable Long id) {
+        accessGuard.requireManager();
         contactMapper.deleteById(id);
         return R.ok();
     }
@@ -192,6 +210,11 @@ public class EmergencyController {
                                                @RequestParam(defaultValue = "10") long size,
                                                @RequestParam(required = false) String status) {
         LambdaQueryWrapper<BwcEmergencyEvent> wrapper = new LambdaQueryWrapper<>();
+        if (accessGuard.isSelfRole()) {
+            wrapper.eq(BwcEmergencyEvent::getReporterId, AuthContext.userId());
+        } else {
+            accessGuard.requireRead();
+        }
         if (status != null && !status.isBlank()) {
             wrapper.eq(BwcEmergencyEvent::getStatus, status);
         }
@@ -202,18 +225,21 @@ public class EmergencyController {
     @PostMapping("/events")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyEvent> report(@RequestBody BwcEmergencyEvent event) {
+        accessGuard.requireSelfService();
         return R.ok(emergencyService.report(event));
     }
 
     @PostMapping("/events/{id}/respond")
     @RequirePermission("emergency:write")
     public R<BwcEmergencyEvent> respond(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        accessGuard.requireManager();
         return R.ok(emergencyService.respond(id, body.get("response")));
     }
 
     @GetMapping("/stats")
     @RequirePermission("emergency:read")
     public R<Map<String, Object>> stats() {
+        accessGuard.requireRead();
         return R.ok(emergencyService.stats());
     }
 }

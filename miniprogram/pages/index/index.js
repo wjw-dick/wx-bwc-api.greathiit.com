@@ -41,15 +41,20 @@ Page({
       { key: 'news', title: '安全资讯', icon: '讯', path: '/pages/news/index' }
     ]
     const role = (user && (user.roleCode || user.userType)) || ''
-    const isGuard = ['TENANT_ADMIN', 'CAPTAIN', 'GUARD', 'ADMIN'].indexOf(role) >= 0
+    const isManager = ['TENANT_ADMIN', 'CAPTAIN', 'GUARD', 'ADMIN'].indexOf(role) >= 0
+    const can = (permission) => app.hasPerm(permission)
     if (user) {
-      links.push(
-        { key: 'vehicleQuery', title: '车辆查询', icon: '查', path: '/pages/vehicle/query' },
-        { key: 'vehicleRegister', title: '车辆备案', icon: '备', path: '/pages/vehicle/register' },
-        { key: 'violation', title: '违停上报', icon: '违', path: '/pages/vehicle/violation' }
-      )
+      if (can('vehicle:read')) {
+        links.push({ key: 'vehicleQuery', title: '车辆查询', icon: '查', path: '/pages/vehicle/query' })
+      }
+      if (can('vehicle:write')) {
+        links.push(
+          { key: 'vehicleRegister', title: '车辆备案', icon: '备', path: '/pages/vehicle/register' },
+          { key: 'violation', title: '违停上报', icon: '违', path: '/pages/vehicle/violation' }
+        )
+      }
     }
-    if (isGuard) {
+    if (isManager) {
       links.push(
         { key: 'gate', title: '门岗登记', icon: '门', path: '/pages/visitor/gate' },
         { key: 'vehicleLogs', title: '车辆记录', icon: '记', path: '/pages/vehicle/logs' },
@@ -60,11 +65,15 @@ Page({
         { key: 'approval', title: '审批中心', icon: '审', path: '/pages/approval/list' }
       )
     } else {
-      links.push(
-        { key: 'report', title: '报修报备', icon: '报', path: '/pages/report/index' },
-        { key: 'education', title: '安全教育', icon: '学', path: '/pages/education/index' },
-        { key: 'approval', title: '审批中心', icon: '审', path: '/pages/approval/list' }
-      )
+      if (can('report:write') || can('device:write')) {
+        links.push({ key: 'report', title: '报修报备', icon: '报', path: '/pages/report/index' })
+      }
+      if (can('education:read')) {
+        links.push({ key: 'education', title: '安全教育', icon: '学', path: '/pages/education/index' })
+      }
+      if (role === 'STAFF' || role === 'VISITEE') {
+        links.push({ key: 'approval', title: '审批中心', icon: '审', path: '/pages/approval/list' })
+      }
     }
     links.push({ key: 'message', title: '消息中心', icon: '信', path: '/pages/message/index' })
     return links

@@ -32,6 +32,9 @@ public class BwcEmergencyEvent extends BaseEntity {
 
     private String reporter;
 
+    /** 上报人账号：C 端仅能查看本人上报事件 */
+    private Long reporterId;
+
     private String photos;
 
 }

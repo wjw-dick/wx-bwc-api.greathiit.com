@@ -11,6 +11,8 @@ import com.greathiit.bwc.module.logistics.entity.BwcPerformance;
 import com.greathiit.bwc.module.logistics.entity.BwcSchedule;
 import com.greathiit.bwc.module.logistics.mapper.BwcFeedbackMapper;
 import com.greathiit.bwc.module.logistics.service.LogisticsService;
+import com.greathiit.bwc.security.AccessGuard;
+import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.RequirePermission;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class LogisticsController {
 
     private final LogisticsService logisticsService;
     private final BwcFeedbackMapper feedbackMapper;
+    private final AccessGuard accessGuard;
 
     @GetMapping("/schedules")
     @RequirePermission("logistics:read")
@@ -42,24 +45,31 @@ public class LogisticsController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
             @RequestParam(required = false) Long guardId) {
+        accessGuard.requireRead();
+        if (accessGuard.isGuardRole()) {
+            guardId = AuthContext.userId();
+        }
         return R.ok(logisticsService.schedules(page, size, start, end, guardId));
     }
 
     @PostMapping("/schedules")
     @RequirePermission("logistics:write")
     public R<BwcSchedule> createSchedule(@RequestBody BwcSchedule schedule) {
+        accessGuard.requireManager();
         return R.ok(logisticsService.saveSchedule(schedule, null));
     }
 
     @PutMapping("/schedules/{id}")
     @RequirePermission("logistics:write")
     public R<BwcSchedule> updateSchedule(@PathVariable Long id, @RequestBody BwcSchedule schedule) {
+        accessGuard.requireManager();
         return R.ok(logisticsService.saveSchedule(schedule, id));
     }
 
     @DeleteMapping("/schedules/{id}")
     @RequirePermission("logistics:write")
     public R<Void> deleteSchedule(@PathVariable Long id) {
+        accessGuard.requireManager();
         logisticsService.deleteSchedule(id);
         return R.ok();
     }
@@ -71,13 +81,20 @@ public class LogisticsController {
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) Long guardId,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+        accessGuard.requireRead();
+        if (accessGuard.isGuardRole()) {
+            guardId = AuthContext.userId();
+        }
         return R.ok(logisticsService.attendance(page, size, guardId, date));
     }
 
     @PostMapping("/attendance/check")
     @RequirePermission("logistics:write")
     public R<BwcAttendance> check(@RequestBody Map<String, Object> body) {
-        Long guardId = body.get("guardId") == null ? null : Long.valueOf(String.valueOf(body.get("guardId")));
+        accessGuard.requireSelfService();
+        Long guardId = accessGuard.isManager()
+                ? (body.get("guardId") == null ? null : Long.valueOf(String.valueOf(body.get("guardId"))))
+                : AuthContext.userId();
         return R.ok(logisticsService.checkIn(guardId,
                 body.get("guardName") == null ? null : String.valueOf(body.get("guardName")),
                 body.get("type") == null ? "ON" : String.valueOf(body.get("type")),
@@ -90,22 +107,29 @@ public class LogisticsController {
     public R<IPage<BwcPerformance>> performance(@RequestParam(defaultValue = "1") long page,
                                                  @RequestParam(defaultValue = "10") long size,
                                                  @RequestParam(required = false) String month) {
-        return R.ok(logisticsService.performance(page, size, month));
+        accessGuard.requireRead();
+        return R.ok(logisticsService.performance(page, size, month, accessGuard.isGuardRole() ? AuthContext.userId() : null));
     }
 
     @PostMapping("/performance")
     @RequirePermission("logistics:write")
     public R<BwcPerformance> savePerformance(@RequestBody BwcPerformance performance) {
+        accessGuard.requireManager();
         return R.ok(logisticsService.savePerformance(performance));
     }
 
     @GetMapping("/feedback")
-    @RequirePermission("feedback:read")
+    @RequirePermission("logistics:read")
     public R<IPage<BwcFeedback>> feedback(@RequestParam(defaultValue = "1") long page,
                                            @RequestParam(defaultValue = "10") long size,
                                            @RequestParam(required = false) String status,
                                            @RequestParam(required = false) String type) {
         LambdaQueryWrapper<BwcFeedback> wrapper = new LambdaQueryWrapper<>();
+        if (accessGuard.isSelfRole()) {
+            wrapper.eq(BwcFeedback::getUserId, AuthContext.userId());
+        } else {
+            accessGuard.requireRead();
+        }
         if (status != null && !status.isBlank()) {
             wrapper.eq(BwcFeedback::getStatus, status);
         }
@@ -117,26 +141,30 @@ public class LogisticsController {
     }
 
     @PostMapping("/feedback")
-    @RequirePermission("feedback:write")
+    @RequirePermission("logistics:write")
     public R<BwcFeedback> submitFeedback(@RequestBody BwcFeedback feedback) {
+        accessGuard.requireSelfService();
         return R.ok(logisticsService.submitFeedback(feedback));
     }
 
     @PostMapping("/feedback/{id}/handle")
-    @RequirePermission("feedback:write")
+    @RequirePermission("logistics:write")
     public R<BwcFeedback> handleFeedback(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        accessGuard.requireManager();
         return R.ok(logisticsService.handleFeedback(id, body.get("status"), body.get("result")));
     }
 
     @GetMapping("/monthly")
     @RequirePermission("logistics:read")
     public R<java.util.List<BwcMonthlyReport>> monthly() {
+        accessGuard.requireRead();
         return R.ok(logisticsService.monthlyReports());
     }
 
     @PostMapping("/monthly/generate")
     @RequirePermission("logistics:write")
     public R<BwcMonthlyReport> generate(@RequestBody(required = false) Map<String, String> body) {
+        accessGuard.requireManager();
         String month = body == null ? null : body.get("month");
         return R.ok(logisticsService.generateMonthly(month));
     }
@@ -144,6 +172,7 @@ public class LogisticsController {
     @GetMapping("/monthly/{month}/pdf")
     @RequirePermission("logistics:read")
     public void monthlyPdf(@PathVariable String month, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         byte[] pdf = logisticsService.monthlyPdf(month);
         response.setContentType("application/pdf");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -156,6 +185,7 @@ public class LogisticsController {
     @GetMapping("/stats")
     @RequirePermission("logistics:read")
     public R<Map<String, Object>> stats() {
+        accessGuard.requireRead();
         return R.ok(logisticsService.stats());
     }
 }

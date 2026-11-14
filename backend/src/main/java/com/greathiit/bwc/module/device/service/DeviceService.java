@@ -42,6 +42,7 @@ public class DeviceService {
         repair.setRepairNo(noGenerator.next("DR"));
         repair.setStatus("PENDING");
         repair.setReportTime(LocalDateTime.now());
+        repair.setReporterId(AuthContext.userId());
         if (repair.getReporter() == null) {
             repair.setReporter(AuthContext.username());
         }
@@ -115,8 +116,11 @@ public class DeviceService {
         return repair;
     }
 
-    public IPage<BwcDeviceRepair> page(long page, long size, String status) {
+    public IPage<BwcDeviceRepair> page(long page, long size, String status, Long reporterId) {
         LambdaQueryWrapper<BwcDeviceRepair> wrapper = new LambdaQueryWrapper<>();
+        if (reporterId != null) {
+            wrapper.eq(BwcDeviceRepair::getReporterId, reporterId);
+        }
         if (status != null && !status.isBlank()) {
             wrapper.eq(BwcDeviceRepair::getStatus, status);
         }

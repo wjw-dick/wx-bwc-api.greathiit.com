@@ -22,6 +22,9 @@ public class BwcVehicleAppointment extends BaseEntity {
 
     private String phoneMask;
 
+    /** 提交人账号：C 端仅能查看本人预约 */
+    private Long ownerId;
+
     private String reason;
 
     private LocalDateTime visitTime;

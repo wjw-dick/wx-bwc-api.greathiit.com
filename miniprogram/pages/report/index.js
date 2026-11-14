@@ -57,7 +57,7 @@ Page({
     if (!app.isLoggedIn()) return
     this.setData({ loading: true })
     try {
-      const data = await request({ url: '/crud/feedback', params: { page: 1, size: 20 }, silent: true })
+      const data = await request({ url: '/logistics/feedback', params: { page: 1, size: 20 }, silent: true })
       this.setData({
         feedbackList: (data.records || []).map((item) => Object.assign({}, item, {
           statusText: util.statusLabel(item.status),
@@ -94,7 +94,7 @@ Page({
     this.setData({ submitting: true, error: '' })
     try {
       await request({
-        url: '/crud/feedback',
+        url: '/logistics/feedback',
         method: 'POST',
         data: {
           type: this.data.types[f.typeIndex],

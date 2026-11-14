@@ -248,6 +248,20 @@
 5. **外部依赖**：车牌识别相机已按 MQTT 协议类型 2（自建）接入 RabbitMQ（1883，需启用 rabbitmq_mqtt 插件）；cam_id 与相机侧一致；服务器与相机 NTP 对时；加密机型需厂商 encryptVerify 签名算法。
 6. **配置审计与安全**：BASE/密钥修改写入审计日志；密钥加密、页面回掩码；接口调用失败重试 + 日志；禁止跨租户读取车牌识别配置。
 
+### 3.10 实际权限模型与数据范围（2026-11-13 权限整改落档）
+
+> 本节为当前代码/数据库的真实口径，与 3.7、3.8 的总体设计共同生效；冲突时以本节和代码为准。
+
+1. **平台两级**：`SYSTEM` 为平台超级管理员，可跨租户只读、维护平台配置；`PLATFORM_OPERATOR` 为平台运营，仅保留 `platform:read`、`tenant:read`、`audit:read`、`dashboard:read`，不得开通/修改租户、平台账号、参数、菜单、存储、微信配置，不得读取业务原始台账。`X-Tenant-Id` 下钻为全只读，平台模块写入同样 403。
+2. **租户角色**：`TENANT_ADMIN` 本校全业务 + 本校用户/角色 + 本校配置/审计；`CAPTAIN`/`GUARD` 本校业务读写（无教育、无系统管理）；`LEADER` 本校业务只读；`STAFF`/`VISITEE` 为 C 端自助 + 本人被访审批（STAFF/VISITEE），`STUDENT` 无审批。
+3. **服务端强制鉴权**：`PermissionInterceptor` 校验 `@RequirePermission`；`AccessGuard` 再判定“管理动作 / 本人动作 / 数据归属”。管理动作仅 `TENANT_ADMIN/CAPTAIN/GUARD`；租户管理员与队长可跨人审批，保安仅审批本人被访；C 端只能操作本人数据。
+4. **数据归属字段**：访客预约 `visit_user_id`；车辆预约 `owner_id`；报备 `owner_id`；报修 `reporter_id`；反馈 `user_id`；应急事件 `reporter_id`；失物认领 `claimant_id`；晚归 `student_id`。C 端列表按上述字段过滤，管理岗按 `tenant_id` 过滤。
+5. **登录与 Token**：登录阶段显式建立 `TenantContext` 后再查角色/更新登录时间，避免 `tenantId=0` 过滤；JWT 只作身份凭证，每次请求按数据库重载账号状态、角色、租户状态，停用账号或撤销角色后旧 Token 立即失效。
+6. **权限缓存**：Key 为 `tenantId:roleCode`；角色菜单变更、角色修改/删除、用户改角色/状态时清空缓存；新租户开通时按内置角色策略初始化 `sys_role_menu`，不再依赖全局回退。
+7. **菜单与按钮**：列表页使用 `module:read` 展示，写按钮使用 `module:write` 控制；C 端 PC 菜单仅下放自助页面，管理菜单不下发；平台菜单不下发给任何租户角色。
+8. **通用 CRUD 边界**：`/api/crud/**` 仅管理岗/校领导/平台超管可读，写仅租户管理岗；平台/系统/租户/字典/菜单/参数/存储/微信/审计及密钥类资源禁止通用 CRUD；台账类资源只读；查询字段必须为实体字段且禁止 `tenantId`、加密字段等敏感列。
+9. **自助专用接口**：C 端通过 `/visitor/appointments`（本人范围）、`/vehicle/my`、`/lost/claims/self`、`/report/applies`（本人范围）、`/device/repairs`（本人范围）、`/logistics/feedback`（本人范围）、`/education/courses`、`/education/exams/{id}`（去答案）等专用接口访问，不再依赖通用 CRUD。
+
 ## 四、后台 UI/UX 设计规范（开发必须照做）
 > 原则：不从零撸 UI，直接用成熟中后台模板；组件形态、交互顺序定死。
 

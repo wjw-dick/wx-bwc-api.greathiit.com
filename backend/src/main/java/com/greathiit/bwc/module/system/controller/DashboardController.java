@@ -3,6 +3,7 @@ package com.greathiit.bwc.module.system.controller;
 import com.greathiit.bwc.common.ExcelUtil;
 import com.greathiit.bwc.common.R;
 import com.greathiit.bwc.module.system.service.StatsService;
+import com.greathiit.bwc.security.AccessGuard;
 import com.greathiit.bwc.security.PermissionService;
 import com.greathiit.bwc.security.RequirePermission;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class DashboardController {
 
     private final StatsService statsService;
     private final PermissionService permissionService;
+    private final AccessGuard accessGuard;
 
     @GetMapping("/dashboard")
     @RequirePermission("dashboard:read")
@@ -47,6 +49,7 @@ public class DashboardController {
     @GetMapping("/reports/tenant")
     @RequirePermission("report:read")
     public R<Map<String, Object>> tenantReports() {
+        accessGuard.requireRead();
         return R.ok(statsService.tenantOverview());
     }
 
@@ -57,6 +60,7 @@ public class DashboardController {
                                          @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start,
                                          @RequestParam(required = false)
                                          @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        accessGuard.requireRead();
         return R.ok(statsService.moduleStats(module, start, end));
     }
 
@@ -68,6 +72,7 @@ public class DashboardController {
                        @RequestParam(required = false)
                        @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end,
                        HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         Map<String, Object> data = "overview".equals(module)
                 ? statsService.tenantOverview()
                 : statsService.moduleStats(module, start, end);

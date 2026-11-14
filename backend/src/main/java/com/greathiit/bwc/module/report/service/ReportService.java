@@ -38,6 +38,7 @@ public class ReportService {
         apply.setId(null);
         apply.setReportNo(noGenerator.next("RA"));
         apply.setStatus("PENDING");
+        apply.setOwnerId(AuthContext.userId());
         if (apply.getApplicant() == null) {
             apply.setApplicant(AuthContext.username());
         }
@@ -74,6 +75,7 @@ public class ReportService {
         access.setId(null);
         access.setApplyNo(noGenerator.next("MA"));
         access.setStatus("PENDING");
+        access.setApplicantId(AuthContext.userId());
         if (access.getApplicant() == null) {
             access.setApplicant(AuthContext.username());
         }
@@ -125,8 +127,11 @@ public class ReportService {
         return access;
     }
 
-    public IPage<BwcReportApply> applyPage(long page, long size, String type, String status) {
+    public IPage<BwcReportApply> applyPage(long page, long size, String type, String status, Long ownerId) {
         LambdaQueryWrapper<BwcReportApply> wrapper = new LambdaQueryWrapper<>();
+        if (ownerId != null) {
+            wrapper.eq(BwcReportApply::getOwnerId, ownerId);
+        }
         if (type != null && !type.isBlank()) {
             wrapper.eq(BwcReportApply::getType, type);
         }
@@ -137,8 +142,11 @@ public class ReportService {
         return applyMapper.selectPage(new Page<>(page, size), wrapper);
     }
 
-    public IPage<BwcMonitorAccess> monitorPage(long page, long size, String status) {
+    public IPage<BwcMonitorAccess> monitorPage(long page, long size, String status, Long applicantId) {
         LambdaQueryWrapper<BwcMonitorAccess> wrapper = new LambdaQueryWrapper<>();
+        if (applicantId != null) {
+            wrapper.eq(BwcMonitorAccess::getApplicantId, applicantId);
+        }
         if (status != null && !status.isBlank()) {
             wrapper.eq(BwcMonitorAccess::getStatus, status);
         }

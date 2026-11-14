@@ -131,8 +131,11 @@ public class LogisticsService {
         return attendance;
     }
 
-    public IPage<BwcPerformance> performance(long page, long size, String month) {
+    public IPage<BwcPerformance> performance(long page, long size, String month, Long guardId) {
         LambdaQueryWrapper<BwcPerformance> wrapper = new LambdaQueryWrapper<>();
+        if (guardId != null) {
+            wrapper.eq(BwcPerformance::getGuardId, guardId);
+        }
         if (month != null && !month.isBlank()) {
             wrapper.eq(BwcPerformance::getMonth, month);
         }
@@ -158,6 +161,7 @@ public class LogisticsService {
     @Transactional
     public BwcFeedback submitFeedback(BwcFeedback feedback) {
         feedback.setId(null);
+        feedback.setUserId(AuthContext.userId());
         feedback.setSubmitTime(feedback.getSubmitTime() == null ? LocalDateTime.now() : feedback.getSubmitTime());
         feedback.setStatus("PENDING");
         if (feedback.getType() == null) {

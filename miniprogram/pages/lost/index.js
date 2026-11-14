@@ -62,12 +62,12 @@ Page({
     this.setData({ loading: true })
     try {
       const code = app.globalData.tenantCode || 'DEMO'
+      const params = {}
+      if (this.data.category) params.category = this.data.category
+      if (this.data.keyword) params.keyword = this.data.keyword
       const rows = await request({
         url: `/public/tenant/${code}/lost`,
-        params: {
-          category: this.data.category || undefined,
-          keyword: this.data.keyword || undefined
-        },
+        params,
         auth: false,
         silent: true
       })

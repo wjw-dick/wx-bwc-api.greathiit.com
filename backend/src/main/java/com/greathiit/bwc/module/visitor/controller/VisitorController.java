@@ -16,6 +16,7 @@ import com.greathiit.bwc.module.visitor.entity.BwcVisitorAppointment;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitRecordMapper;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitorAppointmentMapper;
 import com.greathiit.bwc.module.visitor.service.VisitorService;
+import com.greathiit.bwc.security.AccessGuard;
 import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.RequirePermission;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,6 +52,7 @@ public class VisitorController {
     private final BwcVisitorAppointmentMapper appointmentMapper;
     private final BwcVisitRecordMapper visitRecordMapper;
     private final AuditService auditService;
+    private final AccessGuard accessGuard;
 
     @GetMapping("/appointments")
     @RequirePermission("visitor:read")
@@ -74,6 +76,11 @@ public class VisitorController {
     @RequirePermission("visitor:approve")
     public R<BwcVisitorAppointment> approve(@PathVariable Long id,
                                             @RequestBody Map<String, Object> body) {
+        BwcVisitorAppointment entity = appointmentMapper.selectById(id);
+        if (entity == null) {
+            throw BizException.notFound("预约不存在或无权访问");
+        }
+        accessGuard.requireApprover(entity.getVisitUserId());
         boolean approved = Boolean.parseBoolean(String.valueOf(body.getOrDefault("approved", false)));
         String remark = body.get("remark") == null ? null : String.valueOf(body.get("remark"));
         return R.ok(visitorService.approve(id, approved, remark));
@@ -86,6 +93,7 @@ public class VisitorController {
         if (entity == null) {
             throw BizException.notFound("预约不存在");
         }
+        accessGuard.requireOwnerOrManager(entity.getVisitUserId());
         entity.setStatus("CANCELLED");
         appointmentMapper.updateById(entity);
         auditService.record("visitor", "CANCEL", String.valueOf(id), "取消预约");
@@ -99,6 +107,7 @@ public class VisitorController {
         if (entity == null || entity.getPassCode() == null) {
             throw BizException.notFound("通行码不存在");
         }
+        accessGuard.requireOwnerOrManager(entity.getVisitUserId());
         Map<String, Object> result = new HashMap<>();
         result.put("passCode", entity.getPassCode());
         result.put("expireTime", entity.getPassExpireTime());
@@ -117,6 +126,7 @@ public class VisitorController {
     @PostMapping("/check")
     @RequirePermission("visitor:write")
     public R<Map<String, Object>> check(@RequestBody Map<String, String> body) {
+        accessGuard.requireManager();
         return R.ok(visitorService.checkPass(body.get("passCode"), body.get("gate"),
                 AuthContext.username(), body.getOrDefault("method", "QR")));
     }
@@ -127,6 +137,7 @@ public class VisitorController {
                                             @RequestParam(defaultValue = "10") long size,
                                             @RequestParam(required = false) String keyword,
                                             @RequestParam(required = false) String status) {
+        accessGuard.requireRead();
         LambdaQueryWrapper<BwcVisitRecord> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isBlank()) {
             wrapper.and(w -> w.like(BwcVisitRecord::getVisitorName, keyword)
@@ -147,12 +158,14 @@ public class VisitorController {
                                               @RequestParam(defaultValue = "10") long size,
                                               @RequestParam(required = false) String status,
                                               @RequestParam(required = false) String keyword) {
+        accessGuard.requireRead();
         return R.ok(visitorService.tempEntryPage(page, size, status, keyword));
     }
 
     @PostMapping("/temp-entry")
     @RequirePermission("visitor:write")
     public R<BwcTempEntry> createTempEntry(@RequestBody Map<String, String> body) {
+        accessGuard.requireManager();
         return R.ok(visitorService.createTempEntry(body.get("visitorName"), body.get("idCard"),
                 body.get("phone"), body.get("reason"), body.get("visitUser")));
     }
@@ -160,6 +173,7 @@ public class VisitorController {
     @PostMapping("/temp-entry/{id}/out")
     @RequirePermission("visitor:write")
     public R<BwcTempEntry> outTempEntry(@PathVariable Long id) {
+        accessGuard.requireManager();
         return R.ok(visitorService.outTempEntry(id));
     }
 
@@ -170,18 +184,28 @@ public class VisitorController {
     public R<IPage<BwcLateReturn>> lateReturns(@RequestParam(defaultValue = "1") long page,
                                                @RequestParam(defaultValue = "10") long size,
                                                @RequestParam(required = false) String confirmStatus) {
-        return R.ok(visitorService.lateReturnPage(page, size, confirmStatus));
+        Long studentId = accessGuard.isSelfRole() ? AuthContext.userId() : null;
+        if (studentId == null) {
+            accessGuard.requireRead();
+        }
+        return R.ok(visitorService.lateReturnPage(page, size, confirmStatus, studentId));
     }
 
     @PostMapping("/late-return")
     @RequirePermission("visitor:write")
     public R<BwcLateReturn> reportLateReturn(@RequestBody BwcLateReturn body) {
+        accessGuard.requireSelfService();
+        if (accessGuard.isSelfRole()) {
+            body.setStudentId(AuthContext.userId());
+            body.setStudentName(AuthContext.get() == null ? null : AuthContext.get().getRealName());
+        }
         return R.ok(visitorService.reportLateReturn(body));
     }
 
     @PostMapping("/late-return/{id}/confirm")
     @RequirePermission("visitor:write")
     public R<BwcLateReturn> confirmLateReturn(@PathVariable Long id) {
+        accessGuard.requireManager();
         return R.ok(visitorService.confirmLateReturn(id, AuthContext.username()));
     }
 
@@ -190,6 +214,7 @@ public class VisitorController {
     public R<Map<String, Object>> stats(
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+        accessGuard.requireRead();
         return R.ok(visitorService.stats(start, end));
     }
 
@@ -197,6 +222,7 @@ public class VisitorController {
     @RequirePermission("visitor:read")
     public void export(@RequestParam(required = false) String status,
                        HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         List<Map<String, ?>> rows = new ArrayList<>();
         for (BwcVisitorAppointment item : visitorService.listForExport(status)) {
             Map<String, Object> row = new LinkedHashMap<>();

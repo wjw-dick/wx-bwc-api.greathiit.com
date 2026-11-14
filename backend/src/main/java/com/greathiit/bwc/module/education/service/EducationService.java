@@ -129,8 +129,11 @@ public class EducationService {
         return warning;
     }
 
-    public IPage<BwcExamRecord> records(long page, long size, Long examId) {
+    public IPage<BwcExamRecord> records(long page, long size, Long examId, Long userId) {
         LambdaQueryWrapper<BwcExamRecord> wrapper = new LambdaQueryWrapper<>();
+        if (userId != null) {
+            wrapper.eq(BwcExamRecord::getUserId, userId);
+        }
         if (examId != null) {
             wrapper.eq(BwcExamRecord::getExamId, examId);
         }

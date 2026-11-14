@@ -15,6 +15,7 @@ import com.greathiit.bwc.module.system.mapper.SysTenantUserMapper;
 import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.JwtUtil;
 import com.greathiit.bwc.security.LoginUser;
+import com.greathiit.bwc.security.PermissionService;
 import com.greathiit.bwc.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final PermissionService permissionService;
 
     public Map<String, Object> login(LoginRequest request) {
         if ("platform".equalsIgnoreCase(request.getLoginType())) {
@@ -61,8 +63,10 @@ public class AuthService {
         }
         user.setLastLoginTime(LocalDateTime.now());
         platformUserMapper.updateById(user);
+        String roleCode = user.getRoleCode() == null || user.getRoleCode().isBlank()
+                ? "PLATFORM_OPERATOR" : user.getRoleCode();
         LoginUser loginUser = new LoginUser(user.getId(), 0L, "PLATFORM", user.getUsername(),
-                user.getRealName(), user.getRoleCode(), "PLATFORM", true);
+                user.getRealName(), roleCode, "PLATFORM", true);
         auditService.record("auth", "LOGIN", "platform", "平台登录");
         return buildResult(loginUser, null);
     }
@@ -81,18 +85,32 @@ public class AuthService {
         }
         SysTenant tenant = tenantService.requireTenant(user.getTenantId());
         tenantService.checkTenantUsable(tenant);
-        String roleCode = user.getRoleCode();
-        if (roleCode == null && user.getRoleId() != null) {
-            SysRole role = roleMapper.selectById(user.getRoleId());
-            roleCode = role == null ? "STAFF" : role.getRoleCode();
+        // 登录请求尚未建立租户上下文；先切到账号所属租户，避免角色查询/登录时间更新被
+        // 租户插件按 tenant_id=0 过滤（历史 tenantId=0 故障根因）。
+        Long prevTenant = TenantContext.getTenantId();
+        boolean prevIgnore = TenantContext.isIgnoreTenant();
+        boolean prevPlatform = TenantContext.isPlatform();
+        boolean prevReadOnly = TenantContext.isReadOnly();
+        TenantContext.set(user.getTenantId(), false, false, false);
+        try {
+            String roleCode = user.getRoleCode();
+            if (roleCode == null && user.getRoleId() != null) {
+                SysRole role = roleMapper.selectById(user.getRoleId());
+                roleCode = role == null ? "STAFF" : role.getRoleCode();
+            }
+            if (roleCode == null || roleCode.isBlank()) {
+                roleCode = "STAFF";
+            }
+            user.setLastLoginTime(LocalDateTime.now());
+            tenantUserMapper.updateById(user);
+            LoginUser loginUser = new LoginUser(user.getId(), user.getTenantId(), tenant.getCode(),
+                    user.getUsername(), user.getRealName(), roleCode,
+                    user.getUserType(), false);
+            auditService.record("auth", "LOGIN", "tenant", "租户登录");
+            return buildResult(loginUser, tenant);
+        } finally {
+            TenantContext.set(prevTenant, prevIgnore, prevPlatform, prevReadOnly);
         }
-        user.setLastLoginTime(LocalDateTime.now());
-        tenantUserMapper.updateById(user);
-        LoginUser loginUser = new LoginUser(user.getId(), user.getTenantId(), tenant.getCode(),
-                user.getUsername(), user.getRealName(), roleCode,
-                user.getUserType(), false);
-        auditService.record("auth", "LOGIN", "tenant", "租户登录");
-        return buildResult(loginUser, tenant);
     }
 
     private boolean matchTenant(SysTenantUser user, String tenantCode) {
@@ -127,6 +145,7 @@ public class AuthService {
             result.put("tenant", t);
         }
         result.put("menus", tenantService.menuTree("admin", loginUser.isPlatform() ? 0L : loginUser.getTenantId(), loginUser));
+        result.put("permissions", permissionService.effectivePermissions(loginUser));
         result.put("languages", tenantService.enabledLanguages());
         return result;
     }
@@ -138,6 +157,7 @@ public class AuthService {
         result.put("tenant", tenantService.tenantConfig(current.getTenantId()));
         result.put("menus", tenantService.menuTree("admin",
                 current.isPlatform() ? 0L : current.getTenantId(), current));
+        result.put("permissions", permissionService.effectivePermissions(current));
         return result;
     }
 
@@ -181,6 +201,9 @@ public class AuthService {
             result.put("message", "微信账号尚未绑定本校档案，请使用账号密码绑定");
             return result;
         }
+        if (!"NORMAL".equals(user.getStatus())) {
+            throw BizException.forbidden("账号已停用");
+        }
         // 未登录入口（公开路径）TenantContext 为 0，切到该用户所属租户后再做更新与租户校验
         Long prevTenant = TenantContext.getTenantId();
         boolean prevIgnore = TenantContext.isIgnoreTenant();
@@ -199,9 +222,12 @@ public class AuthService {
             SysTenant tenant = tenantService.requireTenant(user.getTenantId());
             tenantService.checkTenantUsable(tenant);
             String roleCode = user.getRoleCode();
-            if (roleCode == null && user.getRoleId() != null) {
+            if ((roleCode == null || roleCode.isBlank()) && user.getRoleId() != null) {
                 SysRole role = roleMapper.selectById(user.getRoleId());
                 roleCode = role == null ? "STAFF" : role.getRoleCode();
+            }
+            if (roleCode == null || roleCode.isBlank()) {
+                roleCode = "STAFF";
             }
             LoginUser loginUser = new LoginUser(user.getId(), user.getTenantId(), tenant.getCode(),
                     user.getUsername(), user.getRealName(), roleCode, user.getUserType(), false);
@@ -215,13 +241,22 @@ public class AuthService {
     }
 
     @Transactional
-    public Map<String, Object> wxBind(String username, String password, String code, String appType) {
+    public Map<String, Object> wxBind(String username, String password, String code, String appType,
+                                      String tenantCode) {
         Map<String, String> session = weChatService.code2Session(appType, code);
         List<SysTenantUser> users = tenantUserMapper.selectByUsernameIgnoreTenant(username);
-        SysTenantUser user = users.stream().findFirst().orElse(null);
+        SysTenantUser user = users.stream()
+                .filter(u -> matchTenant(u, tenantCode))
+                .findFirst()
+                .orElse(null);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
             throw new BizException(401, "用户名或密码错误");
         }
+        if (!"NORMAL".equals(user.getStatus())) {
+            throw BizException.forbidden("账号已停用");
+        }
+        SysTenant tenant = tenantService.requireTenant(user.getTenantId());
+        tenantService.checkTenantUsable(tenant);
         user.setOpenid(session.get("openid"));
         user.setUnionid(session.get("unionid"));
         Long prevTenant = TenantContext.getTenantId();
@@ -230,10 +265,12 @@ public class AuthService {
         boolean prevReadOnly = TenantContext.isReadOnly();
         TenantContext.set(user.getTenantId(), false, prevPlatform, prevReadOnly);
         try {
+            String roleCode = user.getRoleCode() == null || user.getRoleCode().isBlank()
+                    ? "STAFF" : user.getRoleCode();
+            user.setLastLoginTime(LocalDateTime.now());
             tenantUserMapper.updateById(user);
-            SysTenant tenant = tenantService.requireTenant(user.getTenantId());
             LoginUser loginUser = new LoginUser(user.getId(), user.getTenantId(), tenant.getCode(),
-                    user.getUsername(), user.getRealName(), user.getRoleCode(), user.getUserType(), false);
+                    user.getUsername(), user.getRealName(), roleCode, user.getUserType(), false);
             auditService.record("auth", "WX_BIND", user.getUsername(), "绑定微信 UnionID");
             return buildResult(loginUser, tenant);
         } finally {

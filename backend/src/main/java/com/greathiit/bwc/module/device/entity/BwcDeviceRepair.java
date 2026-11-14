@@ -28,6 +28,9 @@ public class BwcDeviceRepair extends BaseEntity {
 
     private String reporter;
 
+    /** 报修人账号：C 端仅能查看本人工单 */
+    private Long reporterId;
+
     private LocalDateTime reportTime;
 
     private String status;

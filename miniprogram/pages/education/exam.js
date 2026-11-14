@@ -20,7 +20,7 @@ Page({
 
   async load() {
     try {
-      const exam = await request({ url: `/crud/exam/${this.data.id}` })
+      const exam = await request({ url: `/education/exams/${this.data.id}` })
       let questions = []
       try {
         questions = JSON.parse(exam.questionsJson || '[]')

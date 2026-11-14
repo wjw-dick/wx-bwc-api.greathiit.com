@@ -12,6 +12,7 @@ import com.greathiit.bwc.module.report.entity.BwcReportApply;
 import com.greathiit.bwc.module.report.mapper.BwcReportApplyMapper;
 import com.greathiit.bwc.module.visitor.entity.BwcVisitorAppointment;
 import com.greathiit.bwc.module.visitor.mapper.BwcVisitorAppointmentMapper;
+import com.greathiit.bwc.security.AccessGuard;
 import com.greathiit.bwc.security.RequirePermission;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class PrintController {
     private final BwcHazardMapper hazardMapper;
     private final BwcLostItemMapper lostItemMapper;
     private final LogisticsService logisticsService;
+    private final AccessGuard accessGuard;
 
     @Value("${bwc.pdf-font:/usr/share/fonts/chinese/stsong.ttf}")
     private String pdfFont;
@@ -44,6 +46,7 @@ public class PrintController {
     @GetMapping("/visitor/{id}/pass")
     @RequirePermission("visitor:read")
     public void visitorPass(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         BwcVisitorAppointment appointment = visitorMapper.selectById(id);
         if (appointment == null) {
             throw BizException.notFound("预约不存在");
@@ -66,6 +69,7 @@ public class PrintController {
     @GetMapping("/report/{id}")
     @RequirePermission("report:read")
     public void report(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         BwcReportApply apply = reportMapper.selectById(id);
         if (apply == null) {
             throw BizException.notFound("报备不存在");
@@ -89,6 +93,7 @@ public class PrintController {
     @GetMapping("/hazard/{id}")
     @RequirePermission("hazard:read")
     public void hazard(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         BwcHazard hazard = hazardMapper.selectById(id);
         if (hazard == null) {
             throw BizException.notFound("隐患不存在");
@@ -111,6 +116,7 @@ public class PrintController {
     @GetMapping("/lost/{id}/label")
     @RequirePermission("lost:read")
     public void lostLabel(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         BwcLostItem item = lostItemMapper.selectById(id);
         if (item == null) {
             throw BizException.notFound("失物不存在");
@@ -132,6 +138,7 @@ public class PrintController {
     @GetMapping("/monthly/{month}")
     @RequirePermission("report:read")
     public void monthly(@PathVariable String month, HttpServletResponse response) throws IOException {
+        accessGuard.requireRead();
         write(response, "校园保卫月报-" + month, logisticsService.monthlyPdf(month));
     }
 

@@ -36,6 +36,7 @@ import com.greathiit.bwc.module.system.service.ParamService;
 import com.greathiit.bwc.module.system.service.StorageService;
 import com.greathiit.bwc.module.system.service.TenantService;
 import com.greathiit.bwc.module.system.service.WeChatService;
+import com.greathiit.bwc.security.AccessGuard;
 import com.greathiit.bwc.security.AuthContext;
 import com.greathiit.bwc.security.PermissionService;
 import com.greathiit.bwc.security.RequirePermission;
@@ -79,6 +80,7 @@ public class SystemConfigController {
     private final TenantService tenantService;
     private final CryptoService cryptoService;
     private final PermissionService permissionService;
+    private final AccessGuard accessGuard;
     private final AuditService auditService;
 
     // ------------------------------------------------------------------ 平台参数
@@ -92,7 +94,7 @@ public class SystemConfigController {
     @PutMapping("/params/{key}")
     @RequirePermission("param:write")
     public R<SysPlatformParam> updateParam(@PathVariable String key, @RequestBody Map<String, String> body) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         SysPlatformParam param = paramMapper.selectOne(
                 new LambdaQueryWrapper<SysPlatformParam>().eq(SysPlatformParam::getParamKey, key));
         if (param == null) {
@@ -180,7 +182,7 @@ public class SystemConfigController {
     @PostMapping("/dicts/global")
     @RequirePermission("dict:write")
     public R<SysGlobalDict> createGlobalDict(@RequestBody SysGlobalDict dict) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         dict.setId(null);
         dict.setTenantId(0L);
         if (dict.getStatus() == null) {
@@ -194,7 +196,7 @@ public class SystemConfigController {
     @PutMapping("/dicts/global/{id}")
     @RequirePermission("dict:write")
     public R<SysGlobalDict> updateGlobalDict(@PathVariable Long id, @RequestBody SysGlobalDict dict) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         dict.setId(id);
         globalDictMapper.updateById(dict);
         return R.ok(globalDictMapper.selectById(id));
@@ -203,7 +205,7 @@ public class SystemConfigController {
     @DeleteMapping("/dicts/global/{id}")
     @RequirePermission("dict:write")
     public R<Void> deleteGlobalDict(@PathVariable Long id) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         globalDictMapper.deleteById(id);
         return R.ok();
     }
@@ -247,7 +249,7 @@ public class SystemConfigController {
     @PostMapping("/languages")
     @RequirePermission("i18n:write")
     public R<SysLanguage> createLanguage(@RequestBody SysLanguage language) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         language.setId(null);
         language.setTenantId(0L);
         if (language.getEnabled() == null) {
@@ -264,7 +266,7 @@ public class SystemConfigController {
     @PutMapping("/languages/{id}")
     @RequirePermission("i18n:write")
     public R<SysLanguage> updateLanguage(@PathVariable Long id, @RequestBody SysLanguage language) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         language.setId(id);
         languageMapper.updateById(language);
         return R.ok(languageMapper.selectById(id));
@@ -273,7 +275,7 @@ public class SystemConfigController {
     @DeleteMapping("/languages/{id}")
     @RequirePermission("i18n:write")
     public R<Void> deleteLanguage(@PathVariable Long id) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         languageMapper.deleteById(id);
         return R.ok();
     }
@@ -297,7 +299,7 @@ public class SystemConfigController {
     @PostMapping("/menus")
     @RequirePermission("menu:write")
     public R<SysMenu> createMenu(@RequestBody SysMenu menu) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         menu.setId(null);
         menu.setTenantId(0L);
         if (menu.getVisible() == null) {
@@ -314,7 +316,7 @@ public class SystemConfigController {
     @PutMapping("/menus/{id}")
     @RequirePermission("menu:write")
     public R<SysMenu> updateMenu(@PathVariable Long id, @RequestBody SysMenu menu) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         menu.setId(id);
         menuMapper.updateById(menu);
         auditService.record("menu", "UPDATE", String.valueOf(id), "修改菜单：" + menu.getName());
@@ -324,7 +326,7 @@ public class SystemConfigController {
     @PostMapping("/menus/{id}/visible")
     @RequirePermission("menu:write")
     public R<SysMenu> visible(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         SysMenu menu = menuMapper.selectById(id);
         if (menu == null) {
             throw BizException.notFound("菜单不存在");
@@ -343,7 +345,7 @@ public class SystemConfigController {
     @DeleteMapping("/menus/{id}")
     @RequirePermission("menu:write")
     public R<Void> deleteMenu(@PathVariable Long id) {
-        permissionService.requirePlatform();
+        permissionService.requireSystem();
         menuMapper.deleteById(id);
         return R.ok();
     }
@@ -375,6 +377,7 @@ public class SystemConfigController {
     @PutMapping("/wechat/configs")
     @RequirePermission("wechat:write")
     public R<SysWechatConfig> saveWechatConfig(@RequestBody Map<String, String> body) {
+        permissionService.requireSystem();
         String appType = body.getOrDefault("appType", "MP");
         SysWechatConfig config = wechatConfigMapper.selectOne(new LambdaQueryWrapper<SysWechatConfig>()
                 .eq(SysWechatConfig::getAppType, appType));
@@ -426,6 +429,7 @@ public class SystemConfigController {
     @PostMapping("/wechat/menu/sync")
     @RequirePermission("wechat:write")
     public R<Map<String, Object>> syncWechatMenu(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String appType = body.get("appType") == null ? "MP" : String.valueOf(body.get("appType"));
         boolean success = weChatService.syncMenu(appType, body.get("menu"));
         auditService.record("wechat", "MENU_SYNC", appType, "同步公众号菜单：" + success);
@@ -442,6 +446,7 @@ public class SystemConfigController {
                                                        @RequestParam(defaultValue = "image") String type,
                                                        @RequestParam(defaultValue = "MP") String appType)
             throws IOException {
+        permissionService.requireSystem();
         if (file == null || file.isEmpty()) {
             throw new BizException(400, "请选择要上传的素材文件");
         }
@@ -468,6 +473,7 @@ public class SystemConfigController {
     @RequirePermission("wechat:write")
     public R<Void> deleteWechatMaterial(@PathVariable String mediaId,
                                         @RequestParam(defaultValue = "MP") String appType) {
+        permissionService.requireSystem();
         weChatService.deleteMaterial(appType, mediaId);
         auditService.record("wechat", "MATERIAL_DELETE", mediaId, "删除微信永久素材");
         return R.ok();
@@ -482,6 +488,7 @@ public class SystemConfigController {
     @PostMapping("/wechat/tags")
     @RequirePermission("wechat:write")
     public R<Map<String, Object>> createWechatTag(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
         if (name == null || name.isBlank()) {
             throw new BizException(400, "标签名称不能为空");
@@ -495,6 +502,7 @@ public class SystemConfigController {
     @PostMapping("/wechat/tags/fans")
     @RequirePermission("wechat:write")
     public R<Map<String, Object>> tagWechatFans(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         Long tagId = body.get("tagId") == null ? null : Long.valueOf(String.valueOf(body.get("tagId")));
         List<String> openids = new ArrayList<>();
         Object list = body.get("openids");
@@ -513,6 +521,7 @@ public class SystemConfigController {
     @PostMapping("/wechat/mass/send")
     @RequirePermission("wechat:write")
     public R<Map<String, Object>> massSend(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String content = body.get("content") == null ? null : String.valueOf(body.get("content"));
         if (content == null || content.isBlank()) {
             throw new BizException(400, "群发内容不能为空");
@@ -528,6 +537,7 @@ public class SystemConfigController {
     @PostMapping("/wechat/subscribe/send")
     @RequirePermission("wechat:write")
     public R<Map<String, Object>> sendSubscribe(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String openid = body.get("openid") == null ? null : String.valueOf(body.get("openid"));
         String templateId = body.get("templateId") == null ? null : String.valueOf(body.get("templateId"));
         if (openid == null || templateId == null) {
@@ -692,6 +702,7 @@ public class SystemConfigController {
     @PostMapping("/storage/test")
     @RequirePermission("storage:write")
     public R<Map<String, Object>> testStorage(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String driver = String.valueOf(body.getOrDefault("driver", "local"));
         @SuppressWarnings("unchecked")
         Map<String, Object> config = body.get("config") instanceof Map<?, ?> map
@@ -702,6 +713,7 @@ public class SystemConfigController {
     @PostMapping("/storage/save")
     @RequirePermission("storage:write")
     public R<SysStorageConfig> saveStorage(@RequestBody Map<String, Object> body) {
+        permissionService.requireSystem();
         String driver = String.valueOf(body.getOrDefault("driver", "local"));
         @SuppressWarnings("unchecked")
         Map<String, Object> config = body.get("config") instanceof Map<?, ?> map
@@ -737,6 +749,14 @@ public class SystemConfigController {
     public R<Map<String, Object>> userUpload(@RequestParam("file") MultipartFile file,
                                               @RequestParam(required = false) String bizType,
                                               @RequestParam(required = false) Long bizId) {
+        accessGuard.requireSelfService();
+        if (file == null || file.isEmpty()) {
+            throw new BizException(400, "请选择要上传的文件");
+        }
+        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        if (!contentType.startsWith("image/") && !"application/pdf".equals(contentType)) {
+            throw new BizException(400, "仅支持上传图片或 PDF 附件");
+        }
         return upload(file, bizType, bizId);
     }
 

@@ -45,7 +45,7 @@
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">{{ t('common.detail') }}</el-button>
           <el-button v-if="canWrite && !readOnlyResource" link type="primary" @click="openEdit(row)">{{ t('common.edit') }}</el-button>
-          <el-dropdown @command="(cmd: string) => runAction(cmd, row)">
+          <el-dropdown v-if="canWrite && actions.length" @command="(cmd: string) => runAction(cmd, row)">
             <el-button link type="primary">更多<el-icon><ArrowDown /></el-icon></el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -132,10 +132,27 @@ const props = defineProps<{ resource: string }>()
 const { t } = useI18n()
 const auth = useAuthStore()
 const def = computed(() => resources[props.resource] || { key: props.resource, module: 'system', title: props.resource, fields: [] })
-const canWrite = computed(() => !(auth.isPlatform && auth.tenantHeader))
+const isSelfRole = computed(() => ['STAFF', 'STUDENT', 'VISITEE'].includes(auth.user?.roleCode || ''))
+const canWrite = computed(() => !auth.isPlatform && !isSelfRole.value && auth.hasPerm(`${def.value.module}:write`))
 const readOnlyResource = computed(() => [
   'visit-record', 'vehicle-log', 'plate-log', 'audit-log', 'message-log', 'message'
 ].includes(props.resource))
+const selfListUrls: Record<string, string> = {
+  'visitor-appointment': '/visitor/appointments',
+  'late-return': '/visitor/late-returns',
+  'vehicle-appointment': '/vehicle/appointments',
+  'lost-claim': '/lost/claims',
+  'report-apply': '/report/applies',
+  'monitor-access': '/report/monitor-access',
+  'device-repair': '/device/repairs',
+  'emergency-event': '/emergency/events',
+  'emergency-plan': '/emergency/plans',
+  feedback: '/logistics/feedback',
+  'safety-course': '/education/courses',
+  exam: '/education/exams'
+}
+const listUrl = computed(() => isSelfRole.value && selfListUrls[props.resource]
+  ? selfListUrls[props.resource] : `/crud/${props.resource}`)
 
 const rows = ref<any[]>([])
 const total = ref(0)
@@ -233,7 +250,7 @@ async function load() {
     const params: any = { page: page.value, size: size.value }
     if (keyword.value) params.keyword = keyword.value
     if (status.value) params.status = status.value
-    const data: any = await http.get(`/crud/${props.resource}`, { params })
+    const data: any = await http.get(listUrl.value, { params })
     rows.value = data.records || []
     total.value = data.total || 0
   } finally {

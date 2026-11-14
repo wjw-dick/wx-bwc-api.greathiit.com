@@ -190,20 +190,36 @@ public class PublicController {
     public R<List<BwcLostItem>> lost(@PathVariable String code,
                                       @RequestParam(required = false) String category,
                                       @RequestParam(required = false) String keyword) {
+        // 小程序 wx.request 会把 undefined 序列化成字符串 "undefined"，这里统一按“未传”处理
+        String categoryParam = blankToNull(category);
+        String keywordParam = blankToNull(keyword);
         return withTenant(code, () -> {
             LambdaQueryWrapper<BwcLostItem> wrapper = new LambdaQueryWrapper<>();
             wrapper.in(BwcLostItem::getStatus, List.of("FOUND", "PUBLISHED"));
-            if (category != null && !category.isBlank()) {
-                wrapper.eq(BwcLostItem::getCategory, category);
+            if (categoryParam != null) {
+                wrapper.eq(BwcLostItem::getCategory, categoryParam);
             }
-            if (keyword != null && !keyword.isBlank()) {
-                wrapper.and(w -> w.like(BwcLostItem::getName, keyword)
-                        .or().like(BwcLostItem::getDescription, keyword)
-                        .or().like(BwcLostItem::getLocation, keyword));
+            if (keywordParam != null) {
+                wrapper.and(w -> w.like(BwcLostItem::getName, keywordParam)
+                        .or().like(BwcLostItem::getDescription, keywordParam)
+                        .or().like(BwcLostItem::getLocation, keywordParam));
             }
             wrapper.orderByDesc(BwcLostItem::getFoundTime).last("limit 100");
             return R.ok(lostItemMapper.selectList(wrapper));
         });
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()
+                || "undefined".equalsIgnoreCase(trimmed)
+                || "null".equalsIgnoreCase(trimmed)) {
+            return null;
+        }
+        return trimmed;
     }
 
     @GetMapping("/tenant/{code}/lost-notices")

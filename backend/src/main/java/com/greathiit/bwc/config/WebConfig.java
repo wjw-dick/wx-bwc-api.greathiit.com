@@ -27,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(permissionInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/wx-login", "/api/health",
+                .excludePathPatterns("/api/auth/login", "/api/auth/wx-login", "/api/auth/wx-bind", "/api/health",
                         "/api/portal/**", "/api/wechat/callback", "/api/public/**");
     }
 

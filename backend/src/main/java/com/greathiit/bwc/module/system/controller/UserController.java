@@ -129,14 +129,9 @@ public class UserController {
         user.setTenantId(tenantId);
         user.setPassword(passwordEncoder.encode(rawPassword == null || rawPassword.isBlank()
                 ? "Admin@123" : rawPassword));
-        if (user.getRoleCode() == null) {
-            user.setRoleCode("STAFF");
-        }
-        SysRole role = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
-                .eq(SysRole::getRoleCode, user.getRoleCode()).last("limit 1"));
-        if (role != null) {
-            user.setRoleId(role.getId());
-        }
+        SysRole role = requireValidRole(user.getRoleCode());
+        user.setRoleCode(role.getRoleCode());
+        user.setRoleId(role.getId());
         if (phone != null && !phone.isBlank()) {
             user.setPhoneEnc(cryptoService.encrypt(phone));
             user.setPhoneMask(cryptoService.maskPhone(phone));
@@ -162,10 +157,9 @@ public class UserController {
             user.setRealName(string(body.get("realName")));
         }
         if (body.get("roleCode") != null) {
-            user.setRoleCode(string(body.get("roleCode")));
-            SysRole role = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
-                    .eq(SysRole::getRoleCode, user.getRoleCode()).last("limit 1"));
-            user.setRoleId(role == null ? null : role.getId());
+            SysRole role = requireValidRole(string(body.get("roleCode")));
+            user.setRoleCode(role.getRoleCode());
+            user.setRoleId(role.getId());
         }
         if (body.get("userType") != null) {
             user.setUserType(string(body.get("userType")));
@@ -190,6 +184,7 @@ public class UserController {
             user.setPassword(passwordEncoder.encode(string(body.get("password"))));
         }
         userMapper.updateById(user);
+        permissionService.evictAll();
         auditService.record("user", "UPDATE", user.getUsername(), "修改用户");
         sanitize(user);
         return R.ok(user);
@@ -202,8 +197,7 @@ public class UserController {
         if (user == null) {
             throw BizException.notFound("用户不存在");
         }
-        if ("TENANT_ADMIN".equals(user.getRoleCode())
-                && user.getId().equals(AuthContext.userId())) {
+        if (user.getId().equals(AuthContext.userId())) {
             throw new BizException(400, "不能删除当前登录账号");
         }
         userMapper.deleteById(id);
@@ -237,6 +231,20 @@ public class UserController {
         }
     }
 
+    /** 角色编码必须真实存在且不能是平台角色，防止通过用户管理伪造高权限角色 */
+    private SysRole requireValidRole(String roleCode) {
+        String code = roleCode == null || roleCode.isBlank() ? "STAFF" : roleCode.trim();
+        if ("SYSTEM".equals(code) || "PLATFORM_OPERATOR".equals(code)) {
+            throw BizException.forbidden("不允许分配平台角色");
+        }
+        SysRole role = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, code).last("limit 1"));
+        if (role == null) {
+            throw new BizException(400, "角色不存在：" + code);
+        }
+        return role;
+    }
+
     @GetMapping("/roles")
     @RequirePermission("system:read")
     public R<List<SysRole>> roles() {
@@ -253,6 +261,17 @@ public class UserController {
     @PostMapping("/roles")
     @RequirePermission("system:write")
     public R<SysRole> createRole(@RequestBody SysRole role) {
+        if (role.getRoleCode() == null || role.getRoleCode().isBlank()) {
+            throw new BizException(400, "角色编码不能为空");
+        }
+        if ("SYSTEM".equals(role.getRoleCode()) || "PLATFORM_OPERATOR".equals(role.getRoleCode())) {
+            throw BizException.forbidden("不允许创建平台角色");
+        }
+        Long exists = roleMapper.selectCount(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getRoleCode, role.getRoleCode()));
+        if (exists != null && exists > 0) {
+            throw new BizException(400, "角色编码已存在：" + role.getRoleCode());
+        }
         role.setId(null);
         role.setTenantId(TenantContext.getTenantId());
         if (role.getDataScope() == null) {
@@ -268,7 +287,9 @@ public class UserController {
     public R<SysRole> updateRole(@PathVariable Long id, @RequestBody SysRole role) {
         requireRole(id);
         role.setId(id);
+        role.setTenantId(null);
         roleMapper.updateById(role);
+        permissionService.evictAll();
         return R.ok(roleMapper.selectById(id));
     }
 
@@ -287,6 +308,7 @@ public class UserController {
             throw new BizException(400, "内置角色不允许删除");
         }
         roleMapper.deleteById(id);
+        permissionService.evictAll();
         return R.ok();
     }
 

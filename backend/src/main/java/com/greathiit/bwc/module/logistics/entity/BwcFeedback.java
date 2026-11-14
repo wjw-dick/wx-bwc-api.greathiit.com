@@ -24,6 +24,9 @@ public class BwcFeedback extends BaseEntity {
 
     private String contact;
 
+    /** 提交人账号：C 端仅能查看本人反馈 */
+    private Long userId;
+
     private LocalDateTime submitTime;
 
     private String status;

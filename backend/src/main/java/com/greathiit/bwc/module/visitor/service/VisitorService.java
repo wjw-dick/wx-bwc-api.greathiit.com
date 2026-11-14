@@ -273,10 +273,13 @@ public class VisitorService {
         return entity;
     }
 
-    public IPage<BwcLateReturn> lateReturnPage(long page, long size, String confirmStatus) {
+    public IPage<BwcLateReturn> lateReturnPage(long page, long size, String confirmStatus, Long studentId) {
         LambdaQueryWrapper<BwcLateReturn> wrapper = new LambdaQueryWrapper<>();
         if (confirmStatus != null && !confirmStatus.isBlank()) {
             wrapper.eq(BwcLateReturn::getConfirmStatus, confirmStatus);
+        }
+        if (studentId != null) {
+            wrapper.eq(BwcLateReturn::getStudentId, studentId);
         }
         wrapper.orderByDesc(BwcLateReturn::getId);
         return lateReturnMapper.selectPage(new Page<>(page, size), wrapper);

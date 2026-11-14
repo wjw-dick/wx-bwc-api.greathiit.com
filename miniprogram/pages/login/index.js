@@ -48,7 +48,8 @@ Page({
               username: this.data.username,
               password: this.data.password,
               code: loginRes.code,
-              appType: config.APP_TYPE
+              appType: config.APP_TYPE,
+              tenantCode: this.data.tenantCode || app.globalData.tenantCode
             }
           })
           this.finishLogin(result, true)

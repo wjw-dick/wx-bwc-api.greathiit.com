@@ -26,6 +26,9 @@ public class BwcReportApply extends BaseEntity {
 
     private String applicantPhone;
 
+    /** 提交人账号：C 端仅能查看本人报备 */
+    private Long ownerId;
+
     private String content;
 
     private LocalDateTime startTime;
